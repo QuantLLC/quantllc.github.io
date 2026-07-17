@@ -12,224 +12,504 @@ import {
   friendlyError,
 } from './auth.js';
 
-// The download catalog. Files live in /public/downloads and are only offered
-// to signed-in users with a verified email.
+// ---------------------------------------------------------------------------
+// Sample data. There is no live trading backend yet, so the dashboard uses
+// representative placeholder figures (matching the product mockup).
+// ---------------------------------------------------------------------------
+const PORTFOLIO = {
+  balance: 10425,
+  invested: 218,
+  changePct: 4.2,
+  holdings: [
+    { sym: 'NVDA', name: 'NVIDIA', shares: 21 },
+    { sym: 'AAPL', name: 'Apple', shares: 19 },
+  ],
+  income: [120, 138, 129, 156, 171, 168, 190, 210, 205, 236, 258, 274],
+};
+
 const DOWNLOADS = [
   {
-    id: 'quant-cli',
-    name: 'Quant CLI',
-    version: '1.0.0',
-    size: '2 KB',
-    description: 'Command-line tool for the Quant platform.',
-    file: 'downloads/quant-cli-1.0.0.txt',
+    id: 'quant-server-iso',
+    name: 'Quant Server',
+    badge: 'ISO',
+    soon: true,
+    desc: 'Bootable server image. Flash it, run it, and let Quant trade locally.',
+    meta: 'coming soon',
   },
   {
-    id: 'quant-sdk',
-    name: 'Quant SDK',
-    version: '0.9.3',
-    size: '3 KB',
-    description: 'Client SDK and quick-start guide.',
-    file: 'downloads/quant-sdk-0.9.3.txt',
+    id: 'quant-android',
+    name: 'Quant Monitor',
+    badge: 'APK',
+    soon: true,
+    desc: 'Android app to view status on the go. Pairs as mouse/monitor for the server.',
+    meta: 'coming soon',
+  },
+  {
+    id: 'quant-quickstart',
+    name: 'Quick-start guide',
+    badge: 'TXT',
+    soon: false,
+    file: 'downloads/quant-server-quickstart.txt',
+    desc: 'How to set up the server and connect your keyboard and phone.',
+    meta: 'TXT · 2 KB',
   },
 ];
 
-const appEl = document.getElementById('app');
+const STOCKS = [
+  ['NVDA', +1.8], ['AAPL', +0.7], ['MSFT', +1.1], ['TSLA', -2.3], ['AMZN', +0.4],
+  ['GOOGL', +0.9], ['META', -0.6], ['AMD', +2.5], ['SPY', +0.3], ['BTC', -1.2],
+];
 
-function el(html) {
-  const t = document.createElement('template');
-  t.innerHTML = html.trim();
-  return t.content.firstElementChild;
+// ---------------------------------------------------------------------------
+// Small helpers
+// ---------------------------------------------------------------------------
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+const gbp = (n) => '£' + Math.round(n).toLocaleString('en-GB');
+
+function displayName(user) {
+  if (user.displayName) return user.displayName;
+  const local = (user.email || 'investor').split('@')[0];
+  return local.charAt(0).toUpperCase() + local.slice(1);
 }
 
-function setMessage(node, text, type = 'error') {
-  if (!node) return;
-  node.textContent = text || '';
-  node.className = 'message ' + (text ? type : '');
+function notConfigured() {
+  return !USING_EMULATORS && IS_PLACEHOLDER_CONFIG;
 }
 
-// ---------- Views ----------
+// ---------------------------------------------------------------------------
+// Ticker
+// ---------------------------------------------------------------------------
+function buildTicker() {
+  const track = $('#ticker-track');
+  if (!track) return;
+  const cells = STOCKS.concat(STOCKS)
+    .map(([sym, chg]) => {
+      const cls = chg >= 0 ? 'up' : 'down';
+      const arrow = chg >= 0 ? '▲' : '▼';
+      return `<span class="tk"><b>${sym}</b><span class="${cls}">${arrow} ${Math.abs(chg).toFixed(1)}%</span></span>`;
+    })
+    .join('');
+  track.innerHTML = cells;
+}
 
-function renderAuth() {
-  appEl.innerHTML = '';
-  // In a deployed build with no real Firebase config, warn that auth is not yet
-  // wired up (the page still comes up so it can be previewed).
-  const notConfigured = !USING_EMULATORS && IS_PLACEHOLDER_CONFIG;
-  const banner = notConfigured
-    ? `<div class="banner">⚠ Firebase is not configured for this deployment yet, so sign-in is disabled. Set the <code>VITE_FIREBASE_*</code> build variables to enable accounts.</div>`
-    : '';
-  const view = el(`
-    <div class="card">
-      ${banner}
-      <div class="brand"><span class="logo">Q</span><h1>Quant Downloads</h1></div>
-      <p class="subtitle">Sign in to access secure downloads.</p>
-      <div class="tabs">
-        <button class="tab active" data-tab="signin">Sign In</button>
-        <button class="tab" data-tab="signup">Create Account</button>
+// ---------------------------------------------------------------------------
+// Dashboard panel (logged in) / login prompt (logged out) / verify prompt
+// ---------------------------------------------------------------------------
+function sparkline(data, w = 240, h = 84) {
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const span = max - min || 1;
+  const stepX = w / (data.length - 1);
+  const pts = data.map((v, i) => [i * stepX, h - ((v - min) / span) * (h - 8) - 4]);
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const area = `${line} L ${w} ${h} L 0 ${h} Z`;
+  return { line, area, w, h };
+}
+
+function renderDashboard(user) {
+  const slot = $('#panel-slot');
+  const spark = sparkline(PORTFOLIO.income);
+  const holdings = PORTFOLIO.holdings
+    .map(
+      (hd) => `
+      <div class="chip">
+        <span class="sym">${hd.sym}<small>${hd.name}</small></span>
+        <span class="qty">${hd.shares} shares</span>
+      </div>`
+    )
+    .join('');
+
+  slot.innerHTML = `
+    <div class="panel">
+      <button class="share-btn" id="share-btn" title="Share" aria-label="Share">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5 8.6 10.5"/></svg>
+      </button>
+      <div class="panel-grid">
+        <div>
+          <div class="hello">HELLO, ${displayName(user).toUpperCase()}.</div>
+          <div class="balance" id="balance" data-target="${PORTFOLIO.balance}">£0</div>
+          <div class="balance-sub"><span class="up">▲ ${PORTFOLIO.changePct}%</span> today · auto-managed</div>
+          <div class="holdings-label">YOU ARE SHAREHOLDER OF:</div>
+          <div class="chips">${holdings}</div>
+          <div class="panel-actions">
+            <button class="btn btn--ghost btn--sm" id="see-more">See more</button>
+            <button class="btn btn--primary btn--sm" id="see-summary">See summary of today</button>
+          </div>
+        </div>
+        <div>
+          <div class="mini-card">
+            <div class="mini-title">REMINDER</div>
+            <div class="reminder-sub">you invested:</div>
+            <div class="reminder-amt">${gbp(PORTFOLIO.invested)}</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-title">INCOME</div>
+            <svg class="chart" viewBox="0 0 ${spark.w} ${spark.h}" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="incGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="rgba(34,211,122,0.35)"/>
+                  <stop offset="100%" stop-color="rgba(34,211,122,0)"/>
+                </linearGradient>
+              </defs>
+              <path class="chart-area" d="${spark.area}"/>
+              <path class="chart-line" id="chart-line" d="${spark.line}"/>
+            </svg>
+          </div>
+        </div>
       </div>
-      <form id="auth-form" novalidate>
-        <label>Email
-          <input type="email" id="email" placeholder="you@example.com" autocomplete="email" required />
-        </label>
-        <label>Password
-          <input type="password" id="password" placeholder="At least 6 characters" autocomplete="current-password" required />
-        </label>
-        <button type="submit" class="primary" id="submit-btn">Sign In</button>
-      </form>
-      <div class="message" id="msg"></div>
-      <p class="hint">A verification email is sent on sign-up. You must verify before downloading.</p>
-    </div>
-  `);
-  appEl.appendChild(view);
+    </div>`;
 
-  let mode = 'signin';
-  const tabs = view.querySelectorAll('.tab');
-  const submitBtn = view.querySelector('#submit-btn');
-  const pwInput = view.querySelector('#password');
-  const msg = view.querySelector('#msg');
+  countUp($('#balance'));
+  drawChart($('#chart-line'));
 
-  tabs.forEach((tab) => {
-    tab.addEventListener('click', () => {
-      tabs.forEach((t) => t.classList.remove('active'));
-      tab.classList.add('active');
-      mode = tab.dataset.tab;
-      submitBtn.textContent = mode === 'signin' ? 'Sign In' : 'Create Account';
-      pwInput.setAttribute(
-        'autocomplete',
-        mode === 'signin' ? 'current-password' : 'new-password'
-      );
-      setMessage(msg, '');
-    });
-  });
-
-  view.querySelector('#auth-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = view.querySelector('#email').value.trim();
-    const password = pwInput.value;
-    setMessage(msg, '');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Please wait…';
-    try {
-      if (mode === 'signup') {
-        await signUp(email, password);
-        setMessage(msg, 'Account created! Check your email to verify.', 'success');
-      } else {
-        await signIn(email, password);
-      }
-    } catch (err) {
-      setMessage(msg, friendlyError(err));
-      submitBtn.disabled = false;
-      submitBtn.textContent = mode === 'signin' ? 'Sign In' : 'Create Account';
-    }
+  const summaryBtn = $('#see-summary');
+  const seeMore = $('#see-more');
+  const share = $('#share-btn');
+  if (summaryBtn) summaryBtn.addEventListener('click', () => toast(`Today: ${gbp(PORTFOLIO.balance)} · +${PORTFOLIO.changePct}% · ${PORTFOLIO.holdings.length} holdings`));
+  if (seeMore) seeMore.addEventListener('click', () => document.querySelector('#about').scrollIntoView());
+  if (share) share.addEventListener('click', async () => {
+    const text = `I'm using Quant — automated investing. Balance ${gbp(PORTFOLIO.balance)}.`;
+    if (navigator.share) { try { await navigator.share({ title: 'Quant', text }); } catch (e) { /* cancelled */ } }
+    else { try { await navigator.clipboard.writeText(text); toast('Copied to clipboard'); } catch (e) { toast('Share: ' + text); } }
   });
 }
 
-function renderVerify(user) {
-  appEl.innerHTML = '';
-  const view = el(`
-    <div class="card">
-      <div class="brand"><span class="logo">Q</span><h1>Verify your email</h1></div>
-      <p class="subtitle">We sent a verification link to<br /><strong>${user.email}</strong></p>
-      <p class="hint">Click the link in that email, then press "I've verified" below.
-      ${
-        USING_EMULATORS
-          ? 'In local dev, open the <a href="http://127.0.0.1:4000/auth" target="_blank" rel="noopener">Auth Emulator</a> to find the link.'
-          : ''
-      }</p>
-      <button class="primary" id="check-btn">I've verified my email</button>
-      <button class="secondary" id="resend-btn">Resend email</button>
-      <button class="link" id="logout-btn">Sign out</button>
-      <div class="message" id="msg"></div>
-    </div>
-  `);
-  appEl.appendChild(view);
-  const msg = view.querySelector('#msg');
+function renderVerifyPrompt(user) {
+  const slot = $('#panel-slot');
+  slot.innerHTML = `
+    <div class="panel panel--prompt">
+      <div class="lock">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h3>Verify your email</h3>
+      <p>We sent a link to <strong>${user.email}</strong>. Verify it to unlock your dashboard.</p>
+      <div class="panel-actions">
+        <button class="btn btn--primary btn--sm" id="verify-check">I've verified</button>
+        <button class="btn btn--ghost btn--sm" id="verify-resend">Resend email</button>
+      </div>
+      ${USING_EMULATORS ? '<div class="panel-note">Dev: find the link in the <a href="http://127.0.0.1:4000/auth" target="_blank" rel="noopener" style="color:var(--accent)">Auth emulator</a>.</div>' : ''}
+      <div class="panel-note" id="verify-msg"></div>
+    </div>`;
 
-  view.querySelector('#check-btn').addEventListener('click', async () => {
-    setMessage(msg, 'Checking…', 'success');
+  $('#verify-check').addEventListener('click', async () => {
+    const msg = $('#verify-msg');
+    msg.textContent = 'Checking…';
     const refreshed = await refreshUser();
     if (refreshed && refreshed.emailVerified) {
       await touchUserProfile(refreshed);
-      renderDownloads(refreshed);
+      renderDashboard(refreshed);
+      updateHeader(refreshed);
     } else {
-      setMessage(msg, 'Still not verified. Click the link in your email first.');
+      msg.textContent = 'Still not verified — click the link in your email first.';
     }
   });
-
-  view.querySelector('#resend-btn').addEventListener('click', async () => {
-    try {
-      await resendVerification();
-      setMessage(msg, 'Verification email resent.', 'success');
-    } catch (err) {
-      setMessage(msg, friendlyError(err));
-    }
+  $('#verify-resend').addEventListener('click', async () => {
+    try { await resendVerification(); $('#verify-msg').textContent = 'Verification email resent.'; }
+    catch (err) { $('#verify-msg').textContent = friendlyError(err); }
   });
-
-  view.querySelector('#logout-btn').addEventListener('click', () => logOut());
 }
 
-function renderDownloads(user) {
-  appEl.innerHTML = '';
-  const items = DOWNLOADS.map(
-    (d) => `
-      <li class="download">
-        <div>
-          <h3>${d.name} <span class="version">v${d.version}</span></h3>
-          <p>${d.description}</p>
-          <span class="meta">${d.size}</span>
-        </div>
-        <a class="primary download-btn" href="${d.file}" download data-id="${d.id}" data-name="${d.name}">Download</a>
-      </li>`
-  ).join('');
-
-  const view = el(`
-    <div class="card wide">
-      <div class="topbar">
-        <div class="brand"><span class="logo">Q</span><h1>Downloads</h1></div>
-        <div class="account">
-          <span class="verified">✓ ${user.email}</span>
-          <button class="link" id="logout-btn">Sign out</button>
-        </div>
+function renderLoginPrompt() {
+  const slot = $('#panel-slot');
+  const warn = notConfigured()
+    ? '<div class="panel-note warn">Sign-in is disabled until Firebase is configured for this deployment.</div>'
+    : '';
+  slot.innerHTML = `
+    <div class="panel panel--prompt">
+      <div class="lock">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
       </div>
-      <p class="subtitle">Your email is verified. Enjoy your downloads.</p>
-      <ul class="downloads">${items}</ul>
-      <div class="message" id="msg"></div>
-    </div>
-  `);
-  appEl.appendChild(view);
-  const msg = view.querySelector('#msg');
+      <h3>Your dashboard awaits</h3>
+      <p>Sign in to see your balance, holdings and income — or create an account to get started.</p>
+      <div class="panel-actions">
+        <button class="btn btn--primary btn--sm" id="prompt-signin" ${notConfigured() ? 'disabled' : ''}>Sign in</button>
+        <button class="btn btn--ghost btn--sm" id="prompt-signup" ${notConfigured() ? 'disabled' : ''}>Create account</button>
+      </div>
+      ${warn}
+    </div>`;
+  const si = $('#prompt-signin');
+  const su = $('#prompt-signup');
+  if (si) si.addEventListener('click', () => openAuthModal('signin'));
+  if (su) su.addEventListener('click', () => openAuthModal('signup'));
+}
 
-  view.querySelectorAll('.download-btn').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const file = { id: btn.dataset.id, name: btn.dataset.name };
-      try {
-        await recordDownload(user, file);
-        setMessage(msg, `Downloading ${file.name}… (recorded to your account)`, 'success');
-      } catch (err) {
-        // Download still proceeds via the anchor even if logging fails.
-        setMessage(msg, friendlyError(err));
-      }
+// ---------------------------------------------------------------------------
+// Auth modal
+// ---------------------------------------------------------------------------
+function openAuthModal(mode = 'signin') {
+  const overlay = $('#auth-modal');
+  const body = $('#auth-modal-body');
+  const banner = notConfigured()
+    ? `<div class="auth-banner">⚠ Firebase isn't configured for this deployment yet, so sign-in is disabled. Set the <code>VITE_FIREBASE_*</code> build variables to enable accounts.</div>`
+    : '';
+  body.innerHTML = `
+    ${banner}
+    <div class="auth-brand"><span class="auth-logo">QUANT<span class="dot">.</span></span></div>
+    <p class="auth-sub">Access your automated portfolio.</p>
+    <div class="tabs">
+      <button class="tab ${mode === 'signin' ? 'active' : ''}" data-tab="signin">Sign In</button>
+      <button class="tab ${mode === 'signup' ? 'active' : ''}" data-tab="signup">Create Account</button>
+    </div>
+    <form class="auth-form" id="auth-form" novalidate>
+      <label>Email
+        <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" required ${notConfigured() ? 'disabled' : ''} />
+      </label>
+      <label>Password
+        <input type="password" id="auth-password" placeholder="At least 6 characters" autocomplete="current-password" required ${notConfigured() ? 'disabled' : ''} />
+      </label>
+      <button type="submit" class="btn btn--primary btn--block" id="auth-submit" ${notConfigured() ? 'disabled' : ''}>${mode === 'signin' ? 'Sign In' : 'Create Account'}</button>
+    </form>
+    <div class="auth-msg" id="auth-msg"></div>
+    <p class="auth-hint">New accounts must verify their email before accessing the dashboard.</p>`;
+
+  overlay.hidden = false;
+  document.body.style.overflow = 'hidden';
+
+  let current = mode;
+  const submit = $('#auth-submit');
+  const pw = $('#auth-password');
+  const msg = $('#auth-msg');
+  const setMsg = (t, ok) => { msg.textContent = t || ''; msg.className = 'auth-msg ' + (t ? (ok ? 'ok' : 'err') : ''); };
+
+  $$('.tab', body).forEach((tab) => {
+    tab.addEventListener('click', () => {
+      $$('.tab', body).forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
+      current = tab.dataset.tab;
+      submit.textContent = current === 'signin' ? 'Sign In' : 'Create Account';
+      pw.setAttribute('autocomplete', current === 'signin' ? 'current-password' : 'new-password');
+      setMsg('');
     });
   });
 
-  view.querySelector('#logout-btn').addEventListener('click', () => logOut());
+  $('#auth-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = $('#auth-email').value.trim();
+    const password = pw.value;
+    setMsg('');
+    submit.disabled = true;
+    const original = submit.textContent;
+    submit.textContent = 'Please wait…';
+    try {
+      if (current === 'signup') {
+        await signUp(email, password);
+        setMsg('Account created! Check your email to verify.', true);
+      } else {
+        await signIn(email, password);
+      }
+      setTimeout(closeAuthModal, 700);
+    } catch (err) {
+      setMsg(friendlyError(err));
+      submit.disabled = false;
+      submit.textContent = original;
+    }
+  });
 }
 
-// ---------- Auth state routing ----------
+function closeAuthModal() {
+  const overlay = $('#auth-modal');
+  if (overlay) overlay.hidden = true;
+  document.body.style.overflow = '';
+}
+
+// ---------------------------------------------------------------------------
+// Header state
+// ---------------------------------------------------------------------------
+function updateHeader(user) {
+  const avatar = $('#profile-btn');
+  const initial = $('#avatar-initial');
+  const dot = $('#avatar-dot');
+  const account = $('#menu-account');
+  const authBtn = $('#menu-auth-btn');
+  if (user) {
+    initial.textContent = displayName(user).charAt(0).toUpperCase();
+    avatar.classList.add('is-auth');
+    dot.classList.add('is-on');
+    account.textContent = user.email;
+    authBtn.textContent = 'Sign out';
+  } else {
+    initial.textContent = '';
+    avatar.classList.remove('is-auth');
+    dot.classList.remove('is-on');
+    account.textContent = 'Not signed in';
+    authBtn.textContent = 'Sign in';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Downloads
+// ---------------------------------------------------------------------------
+function renderDownloads() {
+  const list = $('#downloads');
+  if (!list) return;
+  list.innerHTML = DOWNLOADS.map((d) => {
+    const badge = `<span class="badge ${d.soon ? 'badge--soon' : ''}">${d.badge}</span>`;
+    const action = d.soon
+      ? `<button class="btn btn--ghost btn--sm" disabled>Coming soon</button>`
+      : `<a class="btn btn--primary btn--sm" href="${d.file}" download data-id="${d.id}" data-name="${d.name}">Download</a>`;
+    return `
+      <li class="download">
+        <div>
+          <h3>${d.name} ${badge}</h3>
+          <p>${d.desc}</p>
+          <span class="meta">${d.meta}</span>
+        </div>
+        ${action}
+      </li>`;
+  }).join('');
+
+  $$('.download a[download]', list).forEach((a) => {
+    a.addEventListener('click', async () => {
+      const note = $('#download-note');
+      const file = { id: a.dataset.id, name: a.dataset.name };
+      const user = auth.currentUser;
+      if (user && user.emailVerified) {
+        try {
+          await recordDownload(user, file);
+          note.textContent = `Downloading ${file.name}… (recorded to your account)`;
+          note.className = 'download-note ok';
+        } catch (err) {
+          note.textContent = friendlyError(err);
+          note.className = 'download-note err';
+        }
+      } else {
+        note.textContent = `Downloading ${file.name}…`;
+        note.className = 'download-note ok';
+      }
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Animations
+// ---------------------------------------------------------------------------
+function countUp(el) {
+  if (!el) return;
+  const target = Number(el.dataset.target || 0);
+  const dur = 1100;
+  const start = performance.now();
+  function tick(now) {
+    const t = Math.min((now - start) / dur, 1);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = gbp(target * eased);
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function drawChart(path) {
+  if (!path || typeof path.getTotalLength !== 'function') return;
+  const len = path.getTotalLength();
+  path.style.strokeDasharray = String(len);
+  path.style.strokeDashoffset = String(len);
+  path.getBoundingClientRect();
+  path.style.transition = 'stroke-dashoffset 1.2s ease';
+  requestAnimationFrame(() => { path.style.strokeDashoffset = '0'; });
+}
+
+function animateTagline() {
+  $$('#tagline p[data-line]').forEach((p, i) => {
+    setTimeout(() => p.classList.add('in'), 250 + i * 260);
+  });
+}
+
+function setupReveals() {
+  const obs = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); } });
+    },
+    { threshold: 0.12 }
+  );
+  $$('.reveal').forEach((el) => obs.observe(el));
+}
+
+function toast(text) {
+  let t = $('#toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText =
+      'position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);' +
+      'background:#171a20;border:1px solid rgba(255,255,255,0.16);color:#f3f5f8;' +
+      'padding:12px 18px;border-radius:12px;font-size:14px;z-index:200;opacity:0;' +
+      'transition:opacity .2s ease, transform .2s ease;box-shadow:0 16px 40px rgba(0,0,0,.5);max-width:90vw;';
+    document.body.appendChild(t);
+  }
+  t.textContent = text;
+  requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)'; });
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(20px)'; }, 2600);
+}
+
+// ---------------------------------------------------------------------------
+// Navigation + menu wiring
+// ---------------------------------------------------------------------------
+function setupNav() {
+  const pills = $$('.nav-pill');
+  const sections = ['home', 'about', 'download', 'contact'].map((id) => document.getElementById(id));
+  const obs = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          const id = e.target.id;
+          pills.forEach((p) => p.classList.toggle('is-active', p.dataset.nav === id));
+        }
+      });
+    },
+    { threshold: 0.45 }
+  );
+  sections.forEach((s) => s && obs.observe(s));
+
+  // Settings menu
+  const menuBtn = $('#menu-btn');
+  const menu = $('#settings-menu');
+  const closeMenu = () => { menu.hidden = true; menuBtn.setAttribute('aria-expanded', 'false'); };
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = menu.hidden;
+    menu.hidden = !open;
+    menuBtn.setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('click', (e) => { if (!menu.hidden && !menu.contains(e.target) && e.target !== menuBtn) closeMenu(); });
+  $$('.menu-item[data-nav]', menu).forEach((mi) => mi.addEventListener('click', closeMenu));
+
+  $('#menu-auth-btn').addEventListener('click', () => {
+    closeMenu();
+    if (auth.currentUser) logOut();
+    else openAuthModal('signin');
+  });
+
+  // Avatar
+  $('#profile-btn').addEventListener('click', () => {
+    if (auth.currentUser) document.getElementById('home').scrollIntoView();
+    else openAuthModal('signin');
+  });
+
+  // Modal close wiring
+  $('#modal-close').addEventListener('click', closeAuthModal);
+  $('#auth-modal').addEventListener('click', (e) => { if (e.target.id === 'auth-modal') closeAuthModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAuthModal(); });
+}
+
+// ---------------------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------------------
+$('#year').textContent = new Date().getFullYear();
+buildTicker();
+renderDownloads();
+setupNav();
+setupReveals();
+animateTagline();
 
 onAuthStateChanged(auth, async (user) => {
+  updateHeader(user);
   if (!user) {
-    renderAuth();
+    renderLoginPrompt();
   } else if (!user.emailVerified) {
-    renderVerify(user);
+    renderVerifyPrompt(user);
   } else {
-    // Keep the stored profile current (e.g. emailVerified) on every load.
-    try {
-      await touchUserProfile(user);
-    } catch (err) {
-      // Non-fatal: still show downloads even if the profile write fails.
-      // eslint-disable-next-line no-console
-      console.warn('touchUserProfile failed', err);
-    }
-    renderDownloads(user);
+    try { await touchUserProfile(user); } catch (err) { console.warn('touchUserProfile failed', err); }
+    renderDashboard(user);
   }
 });
