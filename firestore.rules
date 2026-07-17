@@ -1,0 +1,20 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Each authenticated user can read and write only their own profile
+    // document. The document id must match the user's uid.
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    // Download catalog is readable by any signed-in user whose email is
+    // verified. It is not writable from the client.
+    match /downloads/{docId} {
+      allow read: if request.auth != null && request.auth.token.email_verified == true;
+      allow write: if false;
+    }
+  }
+}

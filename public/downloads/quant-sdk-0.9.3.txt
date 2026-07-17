@@ -1,0 +1,14 @@
+Quant SDK v0.9.3
+================
+
+Thank you for downloading the Quant SDK.
+
+This is a sample distributable file served by the Quant Downloads portal.
+In a real deployment this would be your actual SDK package.
+
+Contents:
+  - lib/        client libraries
+  - examples/   quick-start examples
+  - README      integration guide
+
+(c) Quant LLC
