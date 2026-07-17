@@ -33,7 +33,7 @@ export async function signUp(email, password) {
   await sendEmailVerification(cred.user, actionCodeSettings);
 
   // Automatically store the user's profile in Firestore.
-  await saveUserProfile(cred.user);
+  await createUserProfile(cred.user);
 
   return cred.user;
 }
@@ -59,9 +59,9 @@ export async function refreshUser() {
   return auth.currentUser;
 }
 
-// Automatically write / merge the user's profile document. Called on sign-up
-// and on every sign-in so the record stays current.
-export async function saveUserProfile(user) {
+// Create the user's profile document on sign-up. `createdAt` is written once
+// here and must not be overwritten by later updates.
+export async function createUserProfile(user) {
   const ref = doc(db, 'users', user.uid);
   await setDoc(
     ref,
@@ -69,7 +69,24 @@ export async function saveUserProfile(user) {
       uid: user.uid,
       email: user.email,
       emailVerified: user.emailVerified,
+      downloadCount: 0,
       createdAt: serverTimestamp(),
+      lastLoginAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
+// Update mutable profile fields on each sign-in / auth-state change so the
+// record (notably emailVerified and lastLoginAt) stays current. Does NOT touch
+// createdAt.
+export async function touchUserProfile(user) {
+  const ref = doc(db, 'users', user.uid);
+  await setDoc(
+    ref,
+    {
+      email: user.email,
+      emailVerified: user.emailVerified,
       lastLoginAt: serverTimestamp(),
     },
     { merge: true }

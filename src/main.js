@@ -7,7 +7,7 @@ import {
   logOut,
   resendVerification,
   refreshUser,
-  saveUserProfile,
+  touchUserProfile,
   recordDownload,
   friendlyError,
 } from './auth.js';
@@ -141,7 +141,7 @@ function renderVerify(user) {
     setMessage(msg, 'Checking…', 'success');
     const refreshed = await refreshUser();
     if (refreshed && refreshed.emailVerified) {
-      await saveUserProfile(refreshed);
+      await touchUserProfile(refreshed);
       renderDownloads(refreshed);
     } else {
       setMessage(msg, 'Still not verified. Click the link in your email first.');
@@ -209,12 +209,20 @@ function renderDownloads(user) {
 
 // ---------- Auth state routing ----------
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (!user) {
     renderAuth();
   } else if (!user.emailVerified) {
     renderVerify(user);
   } else {
+    // Keep the stored profile current (e.g. emailVerified) on every load.
+    try {
+      await touchUserProfile(user);
+    } catch (err) {
+      // Non-fatal: still show downloads even if the profile write fails.
+      // eslint-disable-next-line no-console
+      console.warn('touchUserProfile failed', err);
+    }
     renderDownloads(user);
   }
 });
