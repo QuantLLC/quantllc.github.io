@@ -9,8 +9,17 @@ import {
   refreshUser,
   touchUserProfile,
   recordDownload,
+  changePassword,
+  deleteAccount,
   friendlyError,
 } from './auth.js';
+import {
+  initSettings,
+  loadAccountSettings,
+  getSettings,
+  setSetting,
+  formatMoney,
+} from './settings.js';
 
 // ---------------------------------------------------------------------------
 // Sample data. There is no live trading backend yet, so the dashboard uses
@@ -65,9 +74,11 @@ const STOCKS = [
 // ---------------------------------------------------------------------------
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-const gbp = (n) => '£' + Math.round(n).toLocaleString('en-GB');
+const gbp = (n) => formatMoney(n);
 
 function displayName(user) {
+  const fromSettings = getSettings().displayName;
+  if (fromSettings) return fromSettings;
   if (user.displayName) return user.displayName;
   const local = (user.email || 'investor').split('@')[0];
   return local.charAt(0).toUpperCase() + local.slice(1);
@@ -314,6 +325,223 @@ function closeAuthModal() {
 }
 
 // ---------------------------------------------------------------------------
+// Settings drawer
+// ---------------------------------------------------------------------------
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// Re-render whichever panel matches the current auth state (used after a
+// setting that affects the dashboard, e.g. currency or display name).
+function refreshPanel() {
+  const u = auth.currentUser;
+  if (!u) renderLoginPrompt();
+  else if (!u.emailVerified) renderVerifyPrompt(u);
+  else renderDashboard(u);
+}
+
+function openSettings() {
+  renderSettings();
+  $('#settings-overlay').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeSettings() {
+  const o = $('#settings-overlay');
+  if (o) o.hidden = true;
+  document.body.style.overflow = '';
+}
+
+function renderSettings() {
+  const s = getSettings();
+  const user = auth.currentUser;
+  const body = $('#settings-body');
+  const foot = $('#settings-foot');
+
+  const accountSection = user
+    ? `
+      <div class="set-group">
+        <h3>Account</h3>
+        <div class="set-row col">
+          <div class="set-label">Display name<small>Shown on your dashboard greeting.</small></div>
+          <div class="set-input">
+            <input id="set-name" type="text" maxlength="40" placeholder="Your name" value="${escapeHtml(s.displayName || '')}" />
+            <button class="btn btn--primary btn--sm" id="set-name-save">Save</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <div class="set-label">Email<small>${escapeHtml(user.email)} · ${user.emailVerified ? 'verified' : 'unverified'}</small></div>
+        </div>
+        <div class="set-row">
+          <div class="set-label">Password<small>We'll email you a secure reset link.</small></div>
+          <button class="btn btn--ghost btn--sm" id="set-pw">Change</button>
+        </div>
+        <div class="set-msg" id="set-account-msg"></div>
+      </div>`
+    : `
+      <div class="set-group">
+        <h3>Account</h3>
+        <div class="set-row">
+          <div class="set-label">Not signed in<small>Sign in to manage your account and sync settings.</small></div>
+          <button class="btn btn--primary btn--sm" id="set-signin">Sign in</button>
+        </div>
+      </div>`;
+
+  body.innerHTML = `
+    ${accountSection}
+    <div class="set-group">
+      <h3>Appearance</h3>
+      <div class="set-row col">
+        <div class="set-label">Theme</div>
+        <div class="segmented" id="seg-theme">
+          <button data-val="system" class="${s.theme === 'system' ? 'on' : ''}">System</button>
+          <button data-val="light" class="${s.theme === 'light' ? 'on' : ''}">Light</button>
+          <button data-val="dark" class="${s.theme === 'dark' ? 'on' : ''}">Dark</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div class="set-label">Reduce motion<small>Minimise animations across the site.</small></div>
+        <label class="switch"><input type="checkbox" id="tg-motion" ${s.reduceMotion ? 'checked' : ''}><span class="track"></span></label>
+      </div>
+    </div>
+    <div class="set-group">
+      <h3>Preferences</h3>
+      <div class="set-row">
+        <div class="set-label">Currency<small>Used across your dashboard.</small></div>
+        <select class="set-select" id="sel-currency">
+          <option value="GBP" ${s.currency === 'GBP' ? 'selected' : ''}>£ GBP</option>
+          <option value="USD" ${s.currency === 'USD' ? 'selected' : ''}>$ USD</option>
+          <option value="EUR" ${s.currency === 'EUR' ? 'selected' : ''}>€ EUR</option>
+        </select>
+      </div>
+      <div class="set-row">
+        <div class="set-label">Email updates<small>Product news and account alerts.</small></div>
+        <label class="switch"><input type="checkbox" id="tg-email" ${s.emailUpdates ? 'checked' : ''}><span class="track"></span></label>
+      </div>
+    </div>
+    <div class="set-group">
+      <h3>Trading</h3>
+      <div class="set-row col">
+        <div class="set-label">Risk profile<small>Guides how aggressively Quant trades for you.</small></div>
+        <div class="segmented" id="seg-risk">
+          <button data-val="conservative" class="${s.riskProfile === 'conservative' ? 'on' : ''}">Safe</button>
+          <button data-val="balanced" class="${s.riskProfile === 'balanced' ? 'on' : ''}">Balanced</button>
+          <button data-val="aggressive" class="${s.riskProfile === 'aggressive' ? 'on' : ''}">Bold</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div class="set-label">Auto-invest<small>Let Quant buy and sell automatically.</small></div>
+        <label class="switch"><input type="checkbox" id="tg-auto" ${s.autoInvest ? 'checked' : ''}><span class="track"></span></label>
+      </div>
+    </div>
+    <div class="set-group">
+      <h3>Security</h3>
+      <div class="set-row disabled">
+        <div class="set-label">Two-factor authentication <span class="soon">SOON</span><small>Extra protection at login.</small></div>
+        <label class="switch"><input type="checkbox" disabled><span class="track"></span></label>
+      </div>
+      <div class="set-row disabled">
+        <div class="set-label">Active sessions <span class="soon">SOON</span><small>Review devices signed into your account.</small></div>
+        <button class="btn btn--ghost btn--sm" disabled>View</button>
+      </div>
+    </div>
+    <div class="set-group">
+      <h3>Server &amp; devices</h3>
+      <div class="set-row disabled">
+        <div class="set-label">Pair local server <span class="soon">SOON</span><small>Connect the Quant server you run from the ISO.</small></div>
+        <button class="btn btn--ghost btn--sm" disabled>Pair</button>
+      </div>
+      <div class="set-row disabled">
+        <div class="set-label">Connected devices <span class="soon">SOON</span><small>Bluetooth keyboard &amp; phone controls.</small></div>
+        <button class="btn btn--ghost btn--sm" disabled>Manage</button>
+      </div>
+    </div>
+    ${user ? `
+    <div class="set-group">
+      <h3>Danger zone</h3>
+      <div class="set-row">
+        <div class="set-label">Delete account<small>Permanently remove your account and data.</small></div>
+        <button class="btn btn--danger btn--sm" id="set-delete">Delete</button>
+      </div>
+      <div class="set-msg" id="set-danger-msg"></div>
+    </div>` : ''}
+  `;
+
+  foot.innerHTML =
+    `<span class="ver">Quant · v0.1.0</span>` +
+    (user ? `<button class="btn btn--ghost btn--sm" id="set-signout">Sign out</button>` : '');
+
+  wireSettings(user);
+}
+
+function wireSegment(id, key) {
+  const seg = $('#' + id);
+  if (!seg) return;
+  $$('button', seg).forEach((b) => {
+    b.addEventListener('click', async () => {
+      $$('button', seg).forEach((x) => x.classList.remove('on'));
+      b.classList.add('on');
+      await setSetting(key, b.dataset.val, auth.currentUser);
+    });
+  });
+}
+
+function wireSettings(user) {
+  wireSegment('seg-theme', 'theme');
+  wireSegment('seg-risk', 'riskProfile');
+
+  const on = (sel, evt, fn) => { const el = $(sel); if (el) el.addEventListener(evt, fn); };
+
+  on('#tg-motion', 'change', (e) => setSetting('reduceMotion', e.target.checked, user));
+  on('#tg-email', 'change', (e) => setSetting('emailUpdates', e.target.checked, user));
+  on('#tg-auto', 'change', (e) => setSetting('autoInvest', e.target.checked, user));
+  on('#sel-currency', 'change', async (e) => {
+    await setSetting('currency', e.target.value, user);
+    refreshPanel();
+  });
+
+  on('#set-name-save', 'click', async () => {
+    const msg = $('#set-account-msg');
+    try {
+      await setSetting('displayName', $('#set-name').value.trim(), user);
+      updateHeader(user);
+      refreshPanel();
+      msg.textContent = 'Display name updated.';
+      msg.className = 'set-msg ok';
+    } catch (err) {
+      msg.textContent = friendlyError(err);
+      msg.className = 'set-msg err';
+    }
+  });
+
+  on('#set-pw', 'click', async () => {
+    const msg = $('#set-account-msg');
+    try {
+      await changePassword(user.email);
+      msg.textContent = 'Password reset email sent' + (USING_EMULATORS ? ' (check the Auth emulator).' : '.');
+      msg.className = 'set-msg ok';
+    } catch (err) {
+      msg.textContent = friendlyError(err);
+      msg.className = 'set-msg err';
+    }
+  });
+
+  on('#set-delete', 'click', async () => {
+    const msg = $('#set-danger-msg');
+    if (!window.confirm('Delete your account permanently? This cannot be undone.')) return;
+    try {
+      await deleteAccount();
+      closeSettings();
+    } catch (err) {
+      msg.textContent = friendlyError(err);
+      msg.className = 'set-msg err';
+    }
+  });
+
+  on('#set-signout', 'click', () => { logOut(); closeSettings(); });
+  on('#set-signin', 'click', () => { closeSettings(); openAuthModal('signin'); });
+}
+
+// ---------------------------------------------------------------------------
 // Header state
 // ---------------------------------------------------------------------------
 function updateHeader(user) {
@@ -480,6 +708,13 @@ function setupNav() {
     else openAuthModal('signin');
   });
 
+  $('#menu-settings-btn').addEventListener('click', () => { closeMenu(); openSettings(); });
+
+  // Settings drawer close wiring
+  $('#settings-close').addEventListener('click', closeSettings);
+  $('#settings-overlay').addEventListener('click', (e) => { if (e.target.id === 'settings-overlay') closeSettings(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSettings(); });
+
   // Avatar
   $('#profile-btn').addEventListener('click', () => {
     if (auth.currentUser) document.getElementById('home').scrollIntoView();
@@ -495,6 +730,7 @@ function setupNav() {
 // ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
+initSettings();
 $('#year').textContent = new Date().getFullYear();
 buildTicker();
 renderDownloads();
@@ -503,6 +739,9 @@ setupReveals();
 animateTagline();
 
 onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    try { await loadAccountSettings(user); } catch (err) { console.warn('loadAccountSettings failed', err); }
+  }
   updateHeader(user);
   if (!user) {
     renderLoginPrompt();
@@ -512,4 +751,6 @@ onAuthStateChanged(auth, async (user) => {
     try { await touchUserProfile(user); } catch (err) { console.warn('touchUserProfile failed', err); }
     renderDashboard(user);
   }
+  // Keep an open settings drawer in sync with auth/settings changes.
+  if (!$('#settings-overlay').hidden) renderSettings();
 });

@@ -49,6 +49,7 @@
           </button>
           <div class="menu" id="settings-menu" hidden>
             <div class="menu-head" id="menu-account">Not signed in</div>
+            <button class="menu-item" id="menu-settings-btn">⚙&nbsp;&nbsp;Settings</button>
             <a class="menu-item" href="#home" data-nav="home">Dashboard</a>
             <a class="menu-item" href="#about" data-nav="about">About Quant</a>
             <a class="menu-item" href="#download" data-nav="download">Downloads</a>
@@ -209,6 +210,18 @@
         <span>Founded by Alexander Korendowych · England, United Kingdom.</span>
       </div>
     </footer>
+
+    <!-- Settings drawer -->
+    <div class="drawer-overlay" id="settings-overlay" hidden>
+      <aside class="drawer" role="dialog" aria-modal="true" aria-label="Settings">
+        <div class="drawer-head">
+          <h2>Settings</h2>
+          <button class="modal-close" id="settings-close" aria-label="Close settings">&times;</button>
+        </div>
+        <div class="drawer-body" id="settings-body"></div>
+        <div class="drawer-foot" id="settings-foot"></div>
+      </aside>
+    </div>
 
     <!-- Auth modal -->
     <div class="modal-overlay" id="auth-modal" hidden>
