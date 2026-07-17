@@ -46,7 +46,8 @@ storage. See `README.md` for the full setup/run docs and the `scripts` block in
 
 ### Deployment
 
-- The live site (`https://quant.github.io/`) is deployed by
+- The live site (`https://quantllc.github.io/`, once the repo is renamed to
+  `quantllc.github.io`) is deployed by
   `.github/workflows/deploy.yml` on push to `main` (builds Vite, publishes
   `dist/` to GitHub Pages). Pages **Source** must be set to "GitHub Actions" once
   in repo settings.
