@@ -43,13 +43,37 @@ npm run dev          # Vite dev server (5173)
 In development the app auto-connects to the emulators, so **no real Firebase
 credentials are required**.
 
-## Production
+## Deploying to GitHub Pages (quant.github.io)
 
-1. Create a Firebase project; enable Email/Password auth and Firestore.
-2. Copy `.env.example` to `.env.local` and fill in your project's web config.
-3. `npm run build` and deploy `dist/` (e.g. to GitHub Pages).
+This repo is a GitHub Pages **org site**, so it is served at the domain root
+`https://quant.github.io/`. Deployment is automated by
+`.github/workflows/deploy.yml`, which builds the Vite app and publishes `dist/`
+on every push to `main`.
 
-Deploy the Firestore rules in `firestore.rules` to your project.
+One-time setup:
+
+1. In the repo, go to **Settings → Pages → Build and deployment → Source** and
+   choose **GitHub Actions**.
+2. Push to `main` (or run the "Deploy to GitHub Pages" workflow manually). The
+   site will come up at https://quant.github.io/.
+
+The site will load without any Firebase config, but sign-in stays disabled and a
+notice is shown until you configure Firebase (below).
+
+### Enabling accounts on the live site
+
+1. Create a Firebase project; enable **Email/Password** auth and **Firestore**.
+2. Add your project's web config as repository **Variables** (not secrets — these
+   values are safe to expose) under **Settings → Secrets and variables → Actions
+   → Variables**: `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`,
+   `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`,
+   `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`.
+3. Add `quant.github.io` under Firebase Auth → Settings → **Authorized domains**.
+4. Deploy the Firestore rules in `firestore.rules` to your project.
+5. Re-run the deploy workflow so the config is baked into the build.
+
+For local production testing, copy `.env.example` to `.env.local`, fill in the
+values, then `npm run build && npm run preview`.
 
 ## Scripts
 

@@ -1,6 +1,6 @@
 import './style.css';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, USING_EMULATORS } from './firebase.js';
+import { auth, USING_EMULATORS, IS_PLACEHOLDER_CONFIG } from './firebase.js';
 import {
   signUp,
   signIn,
@@ -51,8 +51,15 @@ function setMessage(node, text, type = 'error') {
 
 function renderAuth() {
   appEl.innerHTML = '';
+  // In a deployed build with no real Firebase config, warn that auth is not yet
+  // wired up (the page still comes up so it can be previewed).
+  const notConfigured = !USING_EMULATORS && IS_PLACEHOLDER_CONFIG;
+  const banner = notConfigured
+    ? `<div class="banner">⚠ Firebase is not configured for this deployment yet, so sign-in is disabled. Set the <code>VITE_FIREBASE_*</code> build variables to enable accounts.</div>`
+    : '';
   const view = el(`
     <div class="card">
+      ${banner}
       <div class="brand"><span class="logo">Q</span><h1>Quant Downloads</h1></div>
       <p class="subtitle">Sign in to access secure downloads.</p>
       <div class="tabs">

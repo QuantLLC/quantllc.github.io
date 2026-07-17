@@ -43,3 +43,16 @@ storage. See `README.md` for the full setup/run docs and the `scripts` block in
   `firestore.rules` on save automatically.
 - There is no automated test suite or linter configured; verify changes by
   running the app against the emulators (see the flow in `README.md`).
+
+### Deployment
+
+- The live site (`https://quant.github.io/`) is deployed by
+  `.github/workflows/deploy.yml` on push to `main` (builds Vite, publishes
+  `dist/` to GitHub Pages). Pages **Source** must be set to "GitHub Actions" once
+  in repo settings.
+- `vite.config.js` `base` is `/` — correct for an org page served at the domain
+  root. It would need to change only for a project page served under a subpath.
+- Production auth requires real Firebase config via `VITE_FIREBASE_*` build-time
+  env vars (set as Actions **Variables**). Without them the deployed site loads
+  but shows a "not configured" notice and sign-in is disabled — this is expected,
+  not a bug.

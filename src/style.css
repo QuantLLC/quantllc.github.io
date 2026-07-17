@@ -123,6 +123,18 @@ button, .primary, .secondary, .link { font-family: inherit; }
   text-decoration: underline;
 }
 
+.banner {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid #7a5b18;
+  background: #2a2410;
+  color: #f2c94c;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.banner code { background: rgba(255, 255, 255, 0.08); padding: 1px 5px; border-radius: 4px; }
+
 .message { margin-top: 14px; font-size: 14px; min-height: 20px; }
 .message.error { color: var(--error); }
 .message.success { color: var(--success); }

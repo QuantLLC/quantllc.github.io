@@ -29,6 +29,11 @@ export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
+// True when no real Firebase config was provided (still using the demo
+// placeholders). In production this means auth/storage will not work until the
+// VITE_FIREBASE_* env vars are set at build time.
+export const IS_PLACEHOLDER_CONFIG = firebaseConfig.apiKey === 'demo-api-key';
+
 // Connect to the local emulators during development. This is enabled whenever
 // Vite runs in dev mode, or explicitly via VITE_USE_EMULATORS=true.
 export const USING_EMULATORS =
