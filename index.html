@@ -3,11 +3,221 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quant Downloads</title>
-    <meta name="description" content="Secure download portal with verified-email access." />
+    <title>Quant — Automated investing that works while you don't</title>
+    <meta
+      name="description"
+      content="Quant automatically researches, trades and rebalances your portfolio from a server you run locally. Investing is risky. Be safe. Use Quant."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <main id="app"></main>
+    <!-- Animated backdrop -->
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-orb bg-orb--1" aria-hidden="true"></div>
+    <div class="bg-orb bg-orb--2" aria-hidden="true"></div>
+
+    <!-- Header -->
+    <header class="site-header" id="top">
+      <div class="social" aria-label="Social media">
+        <a class="icon-btn" href="tel:+447368598864" title="Call us" aria-label="Call us">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </a>
+        <a class="icon-btn" href="https://github.com/QuantLLC" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 .5C5.73.5.5 5.73.5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.54-3.88-1.54-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.79 2.73 1.27 3.4.97.1-.76.41-1.27.74-1.56-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.2-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.18-1.18 3.18-1.18.63 1.59.23 2.76.11 3.05.75.81 1.2 1.84 1.2 3.1 0 4.43-2.7 5.4-5.26 5.69.42.36.8 1.08.8 2.18v3.23c0 .31.2.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z"/></svg>
+        </a>
+        <a class="icon-btn" href="mailto:quantllcsupport@proton.me" title="Email us" aria-label="Email us">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+        </a>
+      </div>
+
+      <nav class="nav" aria-label="Primary">
+        <a class="nav-pill is-active" href="#home" data-nav="home">HOME</a>
+        <a class="nav-pill" href="#about" data-nav="about">ABOUT</a>
+        <a class="nav-pill" href="#download" data-nav="download">DOWNLOAD</a>
+        <a class="nav-pill" href="#contact" data-nav="contact">CONTACT US</a>
+      </nav>
+
+      <div class="header-right">
+        <div class="menu-wrap">
+          <button class="icon-btn menu-btn" id="menu-btn" aria-label="Settings menu" aria-haspopup="true" aria-expanded="false">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
+          <div class="menu" id="settings-menu" hidden>
+            <div class="menu-head" id="menu-account">Not signed in</div>
+            <a class="menu-item" href="#home" data-nav="home">Dashboard</a>
+            <a class="menu-item" href="#about" data-nav="about">About Quant</a>
+            <a class="menu-item" href="#download" data-nav="download">Downloads</a>
+            <a class="menu-item" href="#contact" data-nav="contact">Contact support</a>
+            <div class="menu-sep"></div>
+            <button class="menu-item menu-item--action" id="menu-auth-btn">Sign in</button>
+          </div>
+        </div>
+        <button class="avatar" id="profile-btn" aria-label="Your profile" title="Your profile">
+          <span class="avatar-initial" id="avatar-initial"></span>
+          <svg class="avatar-default" id="avatar-default" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>
+          <span class="avatar-dot" id="avatar-dot" aria-hidden="true"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Stock ticker -->
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker-track" id="ticker-track"></div>
+    </div>
+
+    <main>
+      <!-- HERO / DASHBOARD -->
+      <section id="home" class="hero">
+        <div class="hero-left reveal">
+          <h1 class="wordmark" id="wordmark" tabindex="0">QUANT<span class="dot">.</span></h1>
+          <div class="tagline" id="tagline">
+            <p data-line>investing is risky.</p>
+            <p data-line>be safe.</p>
+            <p data-line>use <strong>QUANT.</strong></p>
+          </div>
+          <div class="hero-cta">
+            <a class="btn btn--primary" href="#download">Get the server</a>
+            <a class="btn btn--ghost" href="#about">How it works</a>
+          </div>
+        </div>
+
+        <div class="hero-right reveal">
+          <div id="panel-slot"><!-- dashboard or login prompt injected here --></div>
+        </div>
+      </section>
+
+      <!-- ABOUT -->
+      <section id="about" class="section">
+        <div class="section-head reveal">
+          <span class="eyebrow">WHAT IS QUANT</span>
+          <h2>Your money, managed by a machine that never sleeps.</h2>
+          <p class="lede">
+            Deposit funds and Quant does the rest. It continuously researches the
+            market, reads the news, and buys and sells on your behalf — aiming to
+            hand you back your capital plus passive earnings.
+          </p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature reveal">
+            <div class="feature-ic">01</div>
+            <h3>Runs on your own server</h3>
+            <p>Quant runs locally on a server you control — flashed from an ISO you download. Your keys, your machine, your data.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature-ic">02</div>
+            <h3>Research-driven trading</h3>
+            <p>Using Yahoo Finance plus news from many sources, Quant gathers as much signal as possible to judge whether a holding is set to climb or crash.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature-ic">03</div>
+            <h3>Decisive risk control</h3>
+            <p>If a crash is likely it pulls out immediately; if a rebound is expected it holds. Every decision is made to protect and grow your balance.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature-ic">04</div>
+            <h3>Monitor from your phone</h3>
+            <p>The Android app lets you view status anywhere. Control stays physical: pair a Bluetooth keyboard and use your phone as a mouse and monitor.</p>
+          </article>
+        </div>
+
+        <div class="flow reveal" aria-label="How control works">
+          <div class="flow-step"><span>ISO</span><small>Flash &amp; run the server</small></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span>BT keyboard</span><small>Physical control</small></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span>Phone app</span><small>Mouse · monitor · status</small></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step flow-step--accent"><span>Earnings</span><small>Capital + passive gains</small></div>
+        </div>
+      </section>
+
+      <!-- DOWNLOAD -->
+      <section id="download" class="section">
+        <div class="section-head reveal">
+          <span class="eyebrow">DOWNLOADS</span>
+          <h2>Get Quant running.</h2>
+          <p class="lede">Flash the server ISO, then install the companion app to keep an eye on things. Documentation is available now.</p>
+        </div>
+        <ul class="downloads" id="downloads"></ul>
+        <p class="download-note" id="download-note"></p>
+      </section>
+
+      <!-- CONTACT -->
+      <section id="contact" class="section">
+        <div class="section-head reveal">
+          <span class="eyebrow">CONTACT US</span>
+          <h2>Talk to a human.</h2>
+          <p class="lede">Questions about deposits, hardware or the server? Reach out any time.</p>
+        </div>
+        <div class="contact-grid reveal">
+          <a class="contact-card" href="tel:+447368598864">
+            <span class="contact-ic">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </span>
+            <div>
+              <span class="contact-label">Phone (UK &amp; International)</span>
+              <strong>07368 598864</strong>
+            </div>
+          </a>
+          <a class="contact-card" href="mailto:quantllcsupport@proton.me">
+            <span class="contact-ic">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+            </span>
+            <div>
+              <span class="contact-label">Email support</span>
+              <strong>quantllcsupport@proton.me</strong>
+            </div>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <span class="footer-word">QUANT<span class="dot">.</span></span>
+          <p>investing is risky. be safe. use QUANT.</p>
+        </div>
+        <div class="footer-cols">
+          <div>
+            <h4>Product</h4>
+            <a href="#about">About</a>
+            <a href="#download">Download</a>
+            <a href="#home">Dashboard</a>
+          </div>
+          <div>
+            <h4>Contact</h4>
+            <a href="tel:+447368598864">07368 598864</a>
+            <a href="mailto:quantllcsupport@proton.me">quantllcsupport@proton.me</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-disclaimer">
+        <strong>Risk warning:</strong> Investing carries risk, including the loss
+        of capital. Past performance does not guarantee future results. Quant
+        provides automated tools and does not offer financial advice.
+      </div>
+      <div class="footer-legal">
+        <span>&copy; <span id="year"></span> Quant LLC. All rights reserved.</span>
+        <span>Founded by Alexander Korendowych · England, United Kingdom.</span>
+      </div>
+    </footer>
+
+    <!-- Auth modal -->
+    <div class="modal-overlay" id="auth-modal" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-label="Sign in to Quant">
+        <button class="modal-close" id="modal-close" aria-label="Close">&times;</button>
+        <div id="auth-modal-body"></div>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

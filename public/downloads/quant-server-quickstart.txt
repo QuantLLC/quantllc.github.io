@@ -1,0 +1,27 @@
+QUANT — SERVER QUICK-START GUIDE
+================================
+
+Thank you for choosing Quant. This guide covers first-time setup of the Quant
+server and how to control it.
+
+1. FLASH THE SERVER ISO
+   - Write the Quant Server ISO to a USB drive (e.g. with balenaEtcher).
+   - Boot the target machine from the USB drive and follow the installer.
+
+2. CONTROL THE SERVER
+   - Recommended: connect a Bluetooth / 2.4GHz keyboard for physical control.
+   - Use the Quant phone app as a mouse and, if you like, as a monitor.
+   - A normal wired keyboard and mouse also work.
+
+3. MONITOR FROM YOUR PHONE
+   - Install the Quant Monitor app (APK) to view status anywhere.
+   - The app is view-only for safety — control stays on the paired hardware.
+
+4. DEPOSIT & GO
+   - Fund your account. Quant researches the market (Yahoo Finance + news),
+     then buys, holds or sells to protect and grow your balance.
+
+Investing is risky. Be safe. Use Quant.
+
+Support:  quantllcsupport@proton.me  ·  07368 598864
+(c) Quant LLC — Alexander Korendowych, England, United Kingdom.
