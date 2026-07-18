@@ -43,10 +43,21 @@ storage. See `README.md` for the full setup/run docs and the `scripts` block in
   `firestore.rules` on save automatically.
 - There is no automated test suite or linter configured; verify changes by
   running the app against the emulators (see the flow in `README.md`).
+- **TOS is required before `createUser`.** Signup calls `promptTos()` in
+  `src/ui.js` *before* `signUp()` so a Decline never creates Auth/Firestore
+  records. After sign-in, `ensureTosAccepted()` in `main.js` / `dashboard.js`
+  blocks the panel/dashboard until the current `TOS_VERSION` is accepted
+  (“don't show again” is stored in Firestore + `localStorage`; otherwise once
+  per browser session). Bump `TOS_VERSION` in `src/tos.js` when legal text
+  changes.
+- **Top ticker / dashboard prices use Yahoo Finance** via `src/yahoo.js`
+  (direct fetch, then public CORS proxies, 60s `localStorage` cache). If Yahoo
+  is unreachable the ticker keeps the last sample/seed values; the dashboard
+  falls back to a gentle random nudge only when the live fetch fails.
 
 ### Deployment
 
-- The live site (`https://quant.github.io/`) is deployed by
+- The live site (`https://quantllc.github.io/`) is deployed by
   `.github/workflows/deploy.yml` on push to `main` (builds Vite, publishes
   `dist/` to GitHub Pages). Pages **Source** must be set to "GitHub Actions" once
   in repo settings.

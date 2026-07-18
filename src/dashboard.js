@@ -6,6 +6,7 @@ import {
   refreshUser,
   touchUserProfile,
   friendlyError,
+  logOut,
 } from './auth.js';
 import { initSettings, loadAccountSettings, getSettings, formatMoney } from './settings.js';
 import {
@@ -15,7 +16,10 @@ import {
 import {
   PORTFOLIO, PERFORMANCE, ACTIVITY, HOLDING_COLORS, WATCHLIST,
   holdingsValue, totalValue, totalReturnAbs, totalReturnPct, tickMarket,
+  applyYahooQuotes,
 } from './portfolio.js';
+import { ensureTosAccepted } from './tos.js';
+import { fetchYahooQuotes, portfolioYahooSymbols } from './yahoo.js';
 
 const money = (n) => formatMoney(n);
 const signedPct = (n) => (n >= 0 ? '+' : '−') + Math.abs(n).toFixed(1) + '%';
@@ -176,7 +180,7 @@ function renderDashboard(user, { soft = false } = {}) {
       <div>
         <div class="dash-eyebrow">${greeting()},</div>
         <h1 class="dash-name">${escapeHtml(displayName(user))}</h1>
-        <div class="sync-line"><span class="pulse"></span> Live preview · synced <span id="sync-ago">${timeAgo(lastSynced)}</span></div>
+        <div class="sync-line"><span class="pulse"></span> Yahoo Finance · synced <span id="sync-ago">${timeAgo(lastSynced)}</span></div>
       </div>
       <div class="dash-actions">
         <button class="btn btn--ghost btn--sm" id="act-withdraw">Withdraw</button>
@@ -347,23 +351,43 @@ function wireDashboard(user) {
   }
 }
 
+async function syncFromYahoo() {
+  try {
+    const symbols = portfolioYahooSymbols(PORTFOLIO.holdings, WATCHLIST);
+    const quotes = await fetchYahooQuotes(symbols);
+    if (applyYahooQuotes(quotes)) return true;
+  } catch {
+    /* fall through */
+  }
+  return false;
+}
+
 function startMarketTicks() {
   if (tickTimer) clearInterval(tickTimer);
-  tickTimer = setInterval(() => {
+
+  const refresh = async () => {
     if (!auth.currentUser || !auth.currentUser.emailVerified) return;
-    // Don't re-render whole page if a modal/drawer is open
     const open = (id) => { const el = $(id); return el && !el.hidden; };
-    if (open('#money-modal') || open('#holding-modal') || open('#settings-overlay') || open('#auth-modal')) {
+    if (
+      open('#money-modal') ||
+      open('#holding-modal') ||
+      open('#settings-overlay') ||
+      open('#auth-modal') ||
+      open('#tos-modal')
+    ) {
       const ago = $('#sync-ago');
       if (ago) ago.textContent = timeAgo(lastSynced);
       return;
     }
-    tickMarket();
+    const live = await syncFromYahoo();
+    if (!live) tickMarket(); // offline fallback only
     lastSynced = new Date();
-    // Soft refresh numbers without count-up animation
     renderDashboard(auth.currentUser, { soft: true });
-  }, 8000);
-  // Keep "synced Xs ago" fresh
+  };
+
+  void refresh();
+  tickTimer = setInterval(() => { void refresh(); }, 60_000);
+
   if (window.__syncAgo) clearInterval(window.__syncAgo);
   window.__syncAgo = setInterval(() => {
     const ago = $('#sync-ago');
@@ -446,11 +470,23 @@ function drawLine(path) {
   requestAnimationFrame(() => { path.style.strokeDashoffset = '0'; });
 }
 
-function renderCurrent() {
+async function renderCurrent() {
   const u = auth.currentUser;
   if (!authReady) { showDashLoading($('#dash-root')); return; }
-  if (!u) renderGate('login');
-  else if (!u.emailVerified) renderGate('verify', u);
+  if (!u) {
+    renderGate('login');
+    return;
+  }
+  const ok = await ensureTosAccepted(u);
+  if (!ok || auth.currentUser !== u) {
+    if (auth.currentUser === u) {
+      try { await logOut(); } catch { /* ignore */ }
+    }
+    renderGate('login');
+    toast('You must agree to the Terms to view the dashboard.');
+    return;
+  }
+  if (!u.emailVerified) renderGate('verify', u);
   else renderDashboard(u);
 }
 

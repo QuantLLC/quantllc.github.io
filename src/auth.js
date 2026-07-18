@@ -18,6 +18,7 @@ import {
   addDoc,
 } from 'firebase/firestore';
 import { auth, db } from './firebase.js';
+import { clearTosSession } from './tos.js';
 
 // Where the verification link should send the user back to after clicking.
 const actionCodeSettings = {
@@ -25,18 +26,23 @@ const actionCodeSettings = {
   handleCodeInApp: false,
 };
 
-// Create a real account. Passwords are NEVER stored in our database in plain
-// text: Firebase Authentication securely salts + hashes them server-side. We
-// only persist non-sensitive profile data to Firestore.
-export async function signUp(email, password) {
+// Create a real account. Callers MUST obtain TOS acceptance BEFORE calling
+// this (so we never create Auth/Firestore records for users who decline).
+// Passwords are NEVER stored in plain text — Firebase salts + hashes them.
+export async function signUp(email, password, tos = {}) {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
 
-  // Send a verification email so fake/jargon addresses cannot be used to
-  // access downloads. Access is gated on emailVerified elsewhere.
-  await sendEmailVerification(cred.user, actionCodeSettings);
+  // Store profile (incl. TOS) before verification email so the record is
+  // complete, but TOS itself was already agreed pre-signup.
+  await createUserProfile(cred.user, {
+    tosAccepted: true,
+    tosDontShowAgain: !!tos.dontShowAgain,
+    tosVersion: tos.version || null,
+    tosAcceptedAt: serverTimestamp(),
+  });
 
-  // Automatically store the user's profile in Firestore.
-  await createUserProfile(cred.user);
+  // Verification email only after TOS + account creation.
+  await sendEmailVerification(cred.user, actionCodeSettings);
 
   return cred.user;
 }
@@ -52,6 +58,7 @@ export async function resendVerification() {
 }
 
 export async function logOut() {
+  clearTosSession();
   await signOut(auth);
 }
 
@@ -64,7 +71,7 @@ export async function refreshUser() {
 
 // Create the user's profile document on sign-up. `createdAt` is written once
 // here and must not be overwritten by later updates.
-export async function createUserProfile(user) {
+export async function createUserProfile(user, extra = {}) {
   const ref = doc(db, 'users', user.uid);
   await setDoc(
     ref,
@@ -75,6 +82,7 @@ export async function createUserProfile(user) {
       downloadCount: 0,
       createdAt: serverTimestamp(),
       lastLoginAt: serverTimestamp(),
+      ...extra,
     },
     { merge: true }
   );

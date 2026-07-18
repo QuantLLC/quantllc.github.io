@@ -208,6 +208,7 @@ a { color: inherit; text-decoration: none; }
 @keyframes ticker { to { transform: translateX(-100%); } }
 .tk { color: var(--muted); }
 .tk b { color: var(--text); margin-right: 8px; }
+.tk-price { color: var(--text); margin-right: 8px; opacity: 0.85; }
 .tk .up { color: var(--green); }
 .tk .down { color: var(--red); }
 
@@ -490,6 +491,79 @@ main { display: block; }
 .auth-banner code { background: rgba(255, 255, 255, 0.08); padding: 1px 5px; border-radius: 4px; }
 .auth-actions { display: flex; flex-direction: column; gap: 10px; }
 .btn--block { width: 100%; justify-content: center; }
+
+/* ---------- Terms of Service modal ---------- */
+.tos-overlay { z-index: 160; }
+.tos-modal {
+  max-width: 560px;
+  max-height: min(88vh, 720px);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+.tos-head {
+  padding: 22px 24px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.tos-head .auth-logo { display: block; margin-bottom: 6px; }
+.tos-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.tos-scroll {
+  padding: 16px 24px 20px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 180px;
+  max-height: 46vh;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.tos-scroll h3 {
+  margin: 0 0 8px;
+  color: var(--text);
+  font-size: 16px;
+}
+.tos-scroll h4 {
+  margin: 18px 0 6px;
+  color: var(--text);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.tos-scroll p { margin: 0 0 10px; }
+.tos-scroll ul { margin: 0 0 10px; padding-left: 1.2em; }
+.tos-scroll li { margin-bottom: 6px; }
+.tos-scroll a { color: var(--accent); }
+.tos-meta {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--faint);
+  margin-bottom: 14px !important;
+}
+.tos-foot {
+  padding: 14px 24px 20px;
+  border-top: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+}
+.tos-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+.tos-check input { margin-top: 3px; accent-color: var(--green); }
+.tos-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.tos-actions .btn { min-width: 110px; justify-content: center; }
+.tos-actions .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.tos-foot-note { margin: 12px 0 0; font-size: 12px; color: var(--faint); }
 
 /* ---------- Reveal on scroll ---------- */
 .reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.6s ease, transform 0.6s ease; }

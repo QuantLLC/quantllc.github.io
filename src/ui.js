@@ -13,6 +13,15 @@ import {
 } from './auth.js';
 import { getSettings, setSetting } from './settings.js';
 import { TICKER_STOCKS } from './portfolio.js';
+import { fetchYahooQuotes, quotesToTicker } from './yahoo.js';
+import { promptTos, persistTosAcceptance, TOS_VERSION } from './tos.js';
+
+function formatTickerPrice(n) {
+  if (n == null || Number.isNaN(n)) return '';
+  if (n >= 1000) return n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  if (n >= 100) return n.toFixed(1);
+  return n.toFixed(2);
+}
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -57,33 +66,47 @@ export function toast(text) {
   t._timer = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(20px)'; }, 2600);
 }
 
-let liveTicker = TICKER_STOCKS.map(([sym, chg]) => [sym, chg]);
+// Seed with sample values; replaced by live Yahoo Finance as soon as fetch lands.
+let liveTicker = TICKER_STOCKS.map(([sym, chg]) => [sym, chg, null]);
+let tickerFromYahoo = false;
 
 export function buildTicker() {
   const track = $('#ticker-track');
   if (!track) return;
+  track.dataset.source = tickerFromYahoo ? 'yahoo' : 'sample';
   track.innerHTML = liveTicker.concat(liveTicker)
-    .map(([sym, chg]) => {
+    .map(([sym, chg, price]) => {
       const cls = chg >= 0 ? 'up' : 'down';
       const arrow = chg >= 0 ? '▲' : '▼';
-      return `<span class="tk"><b>${sym}</b><span class="${cls}">${arrow} ${Math.abs(chg).toFixed(1)}%</span></span>`;
+      const priceHtml = price != null
+        ? `<span class="tk-price">${formatTickerPrice(price)}</span>`
+        : '';
+      return `<span class="tk"><b>${sym}</b>${priceHtml}<span class="${cls}">${arrow} ${Math.abs(chg).toFixed(2)}%</span></span>`;
     })
     .join('');
 }
 
-/** Nudge ticker percentages slightly so the strip feels live. */
-export function tickLiveTicker() {
-  liveTicker = liveTicker.map(([sym, chg]) => {
-    const next = +(chg + (Math.random() - 0.5) * 0.08).toFixed(1);
-    return [sym, Math.max(-9.9, Math.min(9.9, next))];
-  });
-  buildTicker();
+async function refreshYahooTicker() {
+  try {
+    const quotes = await fetchYahooQuotes();
+    const rows = quotesToTicker(quotes);
+    if (rows.some(([, , price]) => price != null)) {
+      liveTicker = rows;
+      tickerFromYahoo = true;
+      buildTicker();
+    }
+  } catch {
+    /* keep last / sample ticker */
+  }
 }
 
-export function startTickerPulse(ms = 4500) {
+/** Live Yahoo Finance quotes on the top strip; falls back to sample data. */
+export function startTickerPulse() {
   buildTicker();
+  void refreshYahooTicker();
   if (window.__quantTicker) clearInterval(window.__quantTicker);
-  window.__quantTicker = setInterval(tickLiveTicker, ms);
+  // Yahoo cache is 60s — refresh on that cadence
+  window.__quantTicker = setInterval(() => { void refreshYahooTicker(); }, 60_000);
 }
 
 // ---------------------------------------------------------------------------
@@ -251,7 +274,7 @@ export function openAuthModal(mode = 'signin') {
       <button type="submit" class="btn btn--primary btn--block" id="auth-submit" ${notConfigured() ? 'disabled' : ''}>${mode === 'signin' ? 'Sign In' : 'Create Account'}</button>
     </form>
     <div class="auth-msg" id="auth-msg"></div>
-    <p class="auth-hint">New accounts must verify their email before accessing the dashboard.</p>`;
+    <p class="auth-hint">You'll review Quant's Terms &amp; risk disclosure before an account is created. Email verification is required for the dashboard.</p>`;
 
   overlay.hidden = false;
   document.body.style.overflow = 'hidden';
@@ -284,10 +307,27 @@ export function openAuthModal(mode = 'signin') {
     submit.textContent = 'Please wait…';
     try {
       if (current === 'signup') {
-        await signUp(email, password);
+        // TOS BEFORE createUser / verification email — declined users leave no Auth record.
+        const tos = await promptTos({
+          required: true,
+          title: 'Agree before creating your account',
+        });
+        if (!tos.accepted) {
+          setMsg('Account not created — you must agree to the Terms to continue.');
+          toast('Account not created — Terms declined.');
+          submit.disabled = false;
+          submit.textContent = original;
+          return;
+        }
+        await persistTosAcceptance(null, { dontShowAgain: tos.dontShowAgain });
+        await signUp(email, password, {
+          version: TOS_VERSION,
+          dontShowAgain: tos.dontShowAgain,
+        });
         setMsg('Account created! Check your email to verify.', true);
       } else {
         await signIn(email, password);
+        // TOS / dashboard access enforced in onAuthStateChanged.
       }
       setTimeout(closeAuthModal, 700);
     } catch (err) {
@@ -560,7 +600,14 @@ export function initChrome(options = {}) {
   const authModal = $('#auth-modal');
   if (authModal) authModal.addEventListener('click', (e) => { if (e.target.id === 'auth-modal') closeAuthModal(); });
 
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeSettings(); closeAuthModal(); closeMoneyModal(); } });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const tos = document.getElementById('tos-modal');
+    if (tos && !tos.hidden) return; // required TOS is not dismissible via Escape
+    closeSettings();
+    closeAuthModal();
+    closeMoneyModal();
+  });
 }
 
 // Keep an open settings drawer in sync after an auth-state change.
