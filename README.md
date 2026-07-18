@@ -43,19 +43,23 @@ npm run dev          # Vite dev server (5173)
 In development the app auto-connects to the emulators, so **no real Firebase
 credentials are required**.
 
-## Deploying to GitHub Pages (quant.github.io)
+## Deploying to GitHub Pages (quantllc.github.io)
 
-This repo is a GitHub Pages **org site**, so it is served at the domain root
-`https://quant.github.io/`. Deployment is automated by
-`.github/workflows/deploy.yml`, which builds the Vite app and publishes `dist/`
-on every push to `main`.
+For a clean root URL, the repo should be named `quantllc.github.io` (matching the
+`QuantLLC` org). GitHub then treats it as the **org site**, served at the domain
+root `https://quantllc.github.io/`. (If the repo keeps a different name it is a
+project site served under a subpath, e.g. `https://quantllc.github.io/<repo>/`,
+which would require setting `base` in `vite.config.js` to `/<repo>/`.)
+
+Deployment is automated by `.github/workflows/deploy.yml`, which builds the Vite
+app and publishes `dist/` on every push to `main`.
 
 One-time setup:
 
 1. In the repo, go to **Settings → Pages → Build and deployment → Source** and
    choose **GitHub Actions**.
 2. Push to `main` (or run the "Deploy to GitHub Pages" workflow manually). The
-   site will come up at https://quant.github.io/.
+   site will come up at https://quantllc.github.io/.
 
 The site will load without any Firebase config, but sign-in stays disabled and a
 notice is shown until you configure Firebase (below).
@@ -68,7 +72,7 @@ notice is shown until you configure Firebase (below).
    → Variables**: `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`,
    `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`,
    `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`.
-3. Add `quant.github.io` under Firebase Auth → Settings → **Authorized domains**.
+3. Add `quantllc.github.io` under Firebase Auth → Settings → **Authorized domains**.
 4. Deploy the Firestore rules in `firestore.rules` to your project.
 5. Re-run the deploy workflow so the config is baked into the build.
 

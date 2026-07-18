@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite';
 
-// Base path is set for GitHub Pages project sites. For a user/org page
-// (e.g. quant.github.io served at the domain root) keep it as '/'.
+// For a user/org page (repo named quantllc.github.io, served at the domain
+// root) keep base as '/'. For a project site served under a subpath, set this
+// to '/<repo-name>/'.
 export default defineConfig({
   base: '/',
   server: {
