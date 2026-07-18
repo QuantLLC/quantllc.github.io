@@ -8,6 +8,13 @@
       name="description"
       content="Quant automatically researches, trades and rebalances your portfolio from a server you run locally. Investing is risky. Be safe. Use Quant."
     />
+    <link rel="canonical" href="https://quantllc.github.io/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0c0d10" />
+    <meta property="og:title" content="Quant — Automated investing" />
+    <meta property="og:description" content="Research-driven trading on a server you run locally. Investing is risky. Be safe. Use Quant." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://quantllc.github.io/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -178,6 +185,22 @@
             </div>
           </a>
         </div>
+        <form class="contact-form reveal" id="contact-form" novalidate>
+          <h3>Send a message</h3>
+          <div class="contact-form-grid">
+            <label>Name
+              <input type="text" id="cf-name" name="name" autocomplete="name" required placeholder="Your name" />
+            </label>
+            <label>Email
+              <input type="email" id="cf-email" name="email" autocomplete="email" required placeholder="you@example.com" />
+            </label>
+          </div>
+          <label>Message
+            <textarea id="cf-msg" name="message" rows="4" required placeholder="How can we help?"></textarea>
+          </label>
+          <button type="submit" class="btn btn--primary">Open in email app</button>
+          <p class="contact-form-note" id="cf-note">Opens your mail client to quantllcsupport@proton.me — nothing is stored on this site.</p>
+        </form>
       </section>
     </main>
 
@@ -200,6 +223,11 @@
             <a href="tel:+447368598864">07368 598864</a>
             <a href="mailto:quantllcsupport@proton.me">quantllcsupport@proton.me</a>
           </div>
+          <div>
+            <h4>Legal</h4>
+            <a href="/privacy/">Privacy Policy</a>
+            <a href="/terms/">Terms of Use</a>
+          </div>
         </div>
       </div>
       <div class="footer-disclaimer">
@@ -209,7 +237,7 @@
       </div>
       <div class="footer-legal">
         <span>&copy; <span id="year"></span> Quant LLC. All rights reserved.</span>
-        <span>Founded by Alexander Korendowych · England, United Kingdom.</span>
+        <span>Founded by Alexander Korendowych · England, United Kingdom. · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></span>
       </div>
     </footer>
 
