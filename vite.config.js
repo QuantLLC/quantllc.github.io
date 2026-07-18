@@ -14,9 +14,12 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       input: {
-        // Multi-page app: landing page + dashboard route (/dashboard/).
+        // Multi-page app routes.
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         dashboard: fileURLToPath(new URL('./dashboard/index.html', import.meta.url)),
+        privacy: fileURLToPath(new URL('./privacy/index.html', import.meta.url)),
+        terms: fileURLToPath(new URL('./terms/index.html', import.meta.url)),
+        notFound: fileURLToPath(new URL('./404.html', import.meta.url)),
       },
     },
   },

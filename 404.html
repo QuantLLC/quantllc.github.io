@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Page not found — Quant</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;600&family=Space+Mono&display=swap" rel="stylesheet" />
+    <style>
+      :root { --bg:#0c0d10; --text:#f3f5f8; --muted:#98a1b2; --green:#22d37a; --border:rgba(255,255,255,.1); }
+      * { box-sizing: border-box; }
+      body { margin:0; min-height:100vh; display:grid; place-items:center; background:var(--bg); color:var(--text); font-family:'Space Grotesk',sans-serif; padding:24px; }
+      .card { max-width:440px; text-align:center; border:1px solid var(--border); border-radius:18px; padding:40px 28px; background:rgba(30,33,40,.7); }
+      .word { font-family:'Archivo Black',sans-serif; font-size:42px; }
+      .word .dot { color:var(--green); }
+      h1 { font-size:22px; margin:18px 0 8px; }
+      p { color:var(--muted); line-height:1.5; margin:0 0 22px; }
+      a { display:inline-block; padding:12px 20px; border-radius:999px; background:var(--green); color:#062b18; font-weight:700; text-decoration:none; margin:0 6px 8px; }
+      a.ghost { background:transparent; border:1px solid var(--border); color:var(--text); }
+      code { font-family:'Space Mono',monospace; font-size:12px; color:var(--muted); }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="word">QUANT<span class="dot">.</span></div>
+      <h1>404 — page not found</h1>
+      <p>That route doesn't exist. Head home or open your dashboard.</p>
+      <a href="/">Home</a>
+      <a class="ghost" href="/dashboard/">Dashboard</a>
+      <p><code id="path"></code></p>
+    </div>
+    <script>document.getElementById('path').textContent = location.pathname;</script>
+  </body>
+</html>

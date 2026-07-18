@@ -12,6 +12,7 @@ import {
   friendlyError,
 } from './auth.js';
 import { getSettings, setSetting } from './settings.js';
+import { TICKER_STOCKS } from './portfolio.js';
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -19,6 +20,8 @@ export const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel
 // Callbacks provided by the host page.
 let onAccountChange = () => {};
 let onAvatarClick = null;
+let focusReturn = null;
+let trapHandler = null;
 
 export function notConfigured() {
   return !USING_EMULATORS && IS_PLACEHOLDER_CONFIG;
@@ -54,21 +57,145 @@ export function toast(text) {
   t._timer = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(20px)'; }, 2600);
 }
 
-const TICKER_STOCKS = [
-  ['NVDA', +1.8], ['AAPL', +0.7], ['MSFT', +1.1], ['TSLA', -2.3], ['AMZN', +0.4],
-  ['GOOGL', +0.9], ['META', -0.6], ['AMD', +2.5], ['SPY', +0.3], ['BTC', -1.2],
-];
+let liveTicker = TICKER_STOCKS.map(([sym, chg]) => [sym, chg]);
 
 export function buildTicker() {
   const track = $('#ticker-track');
   if (!track) return;
-  track.innerHTML = TICKER_STOCKS.concat(TICKER_STOCKS)
+  track.innerHTML = liveTicker.concat(liveTicker)
     .map(([sym, chg]) => {
       const cls = chg >= 0 ? 'up' : 'down';
       const arrow = chg >= 0 ? '▲' : '▼';
       return `<span class="tk"><b>${sym}</b><span class="${cls}">${arrow} ${Math.abs(chg).toFixed(1)}%</span></span>`;
     })
     .join('');
+}
+
+/** Nudge ticker percentages slightly so the strip feels live. */
+export function tickLiveTicker() {
+  liveTicker = liveTicker.map(([sym, chg]) => {
+    const next = +(chg + (Math.random() - 0.5) * 0.08).toFixed(1);
+    return [sym, Math.max(-9.9, Math.min(9.9, next))];
+  });
+  buildTicker();
+}
+
+export function startTickerPulse(ms = 4500) {
+  buildTicker();
+  if (window.__quantTicker) clearInterval(window.__quantTicker);
+  window.__quantTicker = setInterval(tickLiveTicker, ms);
+}
+
+// ---------------------------------------------------------------------------
+// Focus trap + loading
+// ---------------------------------------------------------------------------
+function trapFocus(container) {
+  releaseFocus();
+  focusReturn = document.activeElement;
+  const focusable = () =>
+    Array.from(container.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])'))
+      .filter((el) => el.offsetParent !== null);
+  const list = focusable();
+  if (list[0]) list[0].focus();
+  trapHandler = (e) => {
+    if (e.key !== 'Tab') return;
+    const items = focusable();
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+  document.addEventListener('keydown', trapHandler);
+}
+
+function releaseFocus() {
+  if (trapHandler) document.removeEventListener('keydown', trapHandler);
+  trapHandler = null;
+  if (focusReturn && focusReturn.focus) { try { focusReturn.focus(); } catch (_) { /* ignore */ } }
+  focusReturn = null;
+}
+
+export function showLoading(slot) {
+  if (!slot) return;
+  slot.innerHTML = `
+    <div class="panel panel--prompt skeleton-panel" aria-busy="true" aria-label="Loading">
+      <div class="skel skel-circle"></div>
+      <div class="skel skel-line w60"></div>
+      <div class="skel skel-line w90"></div>
+      <div class="skel skel-line w40"></div>
+    </div>`;
+}
+
+export function showDashLoading(slot) {
+  if (!slot) return;
+  slot.innerHTML = `
+    <div class="dash-loading" aria-busy="true" aria-label="Loading dashboard">
+      <div class="skel skel-line w40"></div>
+      <div class="skel skel-line w30" style="height:36px;margin:12px 0 24px"></div>
+      <div class="stat-grid">
+        <div class="card skel-card"></div><div class="card skel-card"></div>
+        <div class="card skel-card"></div><div class="card skel-card"></div>
+      </div>
+      <div class="dash-grid" style="margin-top:16px">
+        <div class="card skel-card" style="height:280px"></div>
+        <div class="card skel-card" style="height:280px"></div>
+      </div>
+    </div>`;
+}
+
+/** Deposit / withdraw modal (preview UX — funds are not moved yet). */
+export function openMoneyModal(kind = 'deposit') {
+  let overlay = $('#money-modal');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'money-modal';
+    overlay.hidden = true;
+    overlay.innerHTML = `
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="money-title">
+        <button class="modal-close" id="money-close" aria-label="Close">&times;</button>
+        <div id="money-body"></div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => { if (e.target.id === 'money-modal') closeMoneyModal(); });
+    $('#money-close', overlay).addEventListener('click', closeMoneyModal);
+  }
+  const isDep = kind === 'deposit';
+  $('#money-body').innerHTML = `
+    <div class="auth-brand"><span class="auth-logo">QUANT<span class="dot">.</span></span></div>
+    <h3 id="money-title" style="margin:8px 0 4px">${isDep ? 'Deposit funds' : 'Withdraw funds'}</h3>
+    <p class="auth-sub">${isDep ? 'Add capital for Quant to invest automatically.' : 'Move available cash back to your bank.'}</p>
+    <form class="auth-form" id="money-form">
+      <label>Amount
+        <input type="number" id="money-amt" min="1" step="0.01" placeholder="e.g. 250" required />
+      </label>
+      <label>Reference <small style="font-weight:400;color:var(--faint)">(optional)</small>
+        <input type="text" id="money-ref" maxlength="40" placeholder="Payday top-up" />
+      </label>
+      <button type="submit" class="btn btn--primary btn--block">${isDep ? 'Request deposit' : 'Request withdrawal'}</button>
+    </form>
+    <p class="auth-hint">Preview only — banking rails ship with the server pairing release.</p>
+    <div class="auth-msg" id="money-msg"></div>`;
+  overlay.hidden = false;
+  document.body.style.overflow = 'hidden';
+  trapFocus(overlay.querySelector('.modal'));
+  $('#money-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const amt = Number($('#money-amt').value);
+    if (!amt || amt <= 0) { $('#money-msg').textContent = 'Enter a valid amount.'; $('#money-msg').className = 'auth-msg err'; return; }
+    $('#money-msg').textContent = `${isDep ? 'Deposit' : 'Withdrawal'} of ${amt.toFixed(2)} queued. You'll be notified when banking is live.`;
+    $('#money-msg').className = 'auth-msg ok';
+    toast(`${isDep ? 'Deposit' : 'Withdrawal'} request noted`);
+    setTimeout(closeMoneyModal, 1200);
+  });
+}
+
+export function closeMoneyModal() {
+  const overlay = $('#money-modal');
+  if (overlay) overlay.hidden = true;
+  document.body.style.overflow = '';
+  releaseFocus();
 }
 
 // ---------------------------------------------------------------------------
@@ -128,6 +255,7 @@ export function openAuthModal(mode = 'signin') {
 
   overlay.hidden = false;
   document.body.style.overflow = 'hidden';
+  trapFocus(overlay.querySelector('.modal') || overlay);
 
   let current = mode;
   const submit = $('#auth-submit');
@@ -174,6 +302,7 @@ export function closeAuthModal() {
   const overlay = $('#auth-modal');
   if (overlay) overlay.hidden = true;
   document.body.style.overflow = '';
+  releaseFocus();
 }
 
 // ---------------------------------------------------------------------------
@@ -184,11 +313,13 @@ export function openSettings() {
   const o = $('#settings-overlay');
   if (o) o.hidden = false;
   document.body.style.overflow = 'hidden';
+  if (o) trapFocus(o.querySelector('.drawer') || o);
 }
 export function closeSettings() {
   const o = $('#settings-overlay');
   if (o) o.hidden = true;
   document.body.style.overflow = '';
+  releaseFocus();
 }
 
 export function renderSettings() {
@@ -392,7 +523,7 @@ export function initChrome(options = {}) {
 
   const yearEl = $('#year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
-  buildTicker();
+  startTickerPulse();
 
   const menuBtn = $('#menu-btn');
   const menu = $('#settings-menu');
@@ -429,7 +560,7 @@ export function initChrome(options = {}) {
   const authModal = $('#auth-modal');
   if (authModal) authModal.addEventListener('click', (e) => { if (e.target.id === 'auth-modal') closeAuthModal(); });
 
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeSettings(); closeAuthModal(); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeSettings(); closeAuthModal(); closeMoneyModal(); } });
 }
 
 // Keep an open settings drawer in sync after an auth-state change.

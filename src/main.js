@@ -18,7 +18,10 @@ import {
   initChrome,
   syncOpenSettings,
   toast,
+  showLoading,
 } from './ui.js';
+
+let authReady = false;
 
 // ---------------------------------------------------------------------------
 // Sample data (no live trading backend yet — representative figures).
@@ -180,10 +183,33 @@ function renderLoginPrompt() {
 }
 
 function refreshPanel() {
+  if (!authReady) { showLoading($('#panel-slot')); return; }
   const u = auth.currentUser;
   if (!u) renderLoginPrompt();
   else if (!u.emailVerified) renderVerifyPrompt(u);
   else renderPanelDashboard(u);
+}
+
+function setupContactForm() {
+  const form = $('#contact-form');
+  if (!form) return;
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = ($('#cf-name').value || '').trim();
+    const email = ($('#cf-email').value || '').trim();
+    const msg = ($('#cf-msg').value || '').trim();
+    const note = $('#cf-note');
+    if (!name || !email || !msg || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      note.textContent = 'Please fill in a valid name, email and message.';
+      note.className = 'contact-form-note err';
+      return;
+    }
+    const subject = encodeURIComponent(`Quant support — ${name}`);
+    const body = encodeURIComponent(`From: ${name} <${email}>\n\n${msg}`);
+    note.textContent = 'Opening your email app…';
+    note.className = 'contact-form-note ok';
+    window.location.href = `mailto:quantllcsupport@proton.me?subject=${subject}&body=${body}`;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -293,13 +319,16 @@ function setupScrollSpy() {
 // Boot
 // ---------------------------------------------------------------------------
 initSettings();
+showLoading($('#panel-slot'));
 initChrome({ onAccountChange: refreshPanel, onAvatar: () => document.getElementById('home').scrollIntoView() });
 renderDownloads();
 setupReveals();
 animateTagline();
 setupScrollSpy();
+setupContactForm();
 
 onAuthStateChanged(auth, async (user) => {
+  authReady = true;
   if (user) {
     try { await loadAccountSettings(user); } catch (err) { console.warn('loadAccountSettings failed', err); }
   }

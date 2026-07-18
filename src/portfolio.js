@@ -4,7 +4,7 @@
 
 export const PORTFOLIO = {
   cash: 935.2,
-  deposited: 9200, // total ever deposited
+  deposited: 9200,
   lastDeposit: 218,
   todayPct: 4.2,
   todayAbs: 420.1,
@@ -16,7 +16,13 @@ export const PORTFOLIO = {
   ],
 };
 
-// Colours used for the allocation donut + holding dots (index-aligned).
+export const WATCHLIST = [
+  { sym: 'AMD', name: 'AMD', price: 168.2, dayPct: 2.5 },
+  { sym: 'GOOGL', name: 'Alphabet', price: 178.6, dayPct: 0.9 },
+  { sym: 'META', name: 'Meta', price: 512.4, dayPct: -0.6 },
+  { sym: 'SPY', name: 'S&P 500 ETF', price: 548.1, dayPct: 0.3 },
+];
+
 export const HOLDING_COLORS = ['#22d37a', '#5b8cff', '#f2c94c', '#c774f2', '#ff8a5b', '#4dd0e1'];
 
 export function holdingsValue() {
@@ -32,7 +38,6 @@ export function totalReturnPct() {
   return (totalReturnAbs() / PORTFOLIO.deposited) * 100;
 }
 
-// Deterministic upward-trending series (with gentle noise) for the chart.
 function series(points, start, end) {
   const arr = [];
   for (let i = 0; i < points; i++) {
@@ -45,13 +50,17 @@ function series(points, start, end) {
   return arr;
 }
 
-const end = totalValue();
-export const PERFORMANCE = {
-  '1W': series(7, end * 0.96, end),
-  '1M': series(30, end * 0.93, end),
-  '1Y': series(52, end * 0.7, end),
-  ALL: series(60, end * 0.58, end),
-};
+export function rebuildPerformance() {
+  const end = totalValue();
+  return {
+    '1W': series(7, end * 0.96, end),
+    '1M': series(30, end * 0.93, end),
+    '1Y': series(52, end * 0.7, end),
+    ALL: series(60, end * 0.58, end),
+  };
+}
+
+export let PERFORMANCE = rebuildPerformance();
 
 export const ACTIVITY = [
   { type: 'BUY', sym: 'NVDA', qty: 5, amount: 650.5, when: '2h ago' },
@@ -59,4 +68,26 @@ export const ACTIVITY = [
   { type: 'BUY', sym: 'MSFT', qty: 2, amount: 860.0, when: 'Yesterday' },
   { type: 'DIVIDEND', sym: 'AAPL', qty: 0, amount: 12.4, when: '2d ago' },
   { type: 'DEPOSIT', sym: '', qty: 0, amount: 218.0, when: '3d ago' },
+];
+
+// Gentle random-walk tick so the UI feels alive (preview data only).
+export function tickMarket() {
+  const nudge = (obj) => {
+    const delta = (Math.random() - 0.48) * obj.price * 0.0015;
+    obj.price = Math.max(0.01, +(obj.price + delta).toFixed(2));
+    obj.dayPct = +((obj.dayPct || 0) + (Math.random() - 0.5) * 0.04).toFixed(2);
+  };
+  PORTFOLIO.holdings.forEach(nudge);
+  WATCHLIST.forEach(nudge);
+  const tv = totalValue();
+  PORTFOLIO.todayAbs = +(tv - PORTFOLIO.deposited * 1.0).toFixed(1);
+  // Keep todayPct roughly coherent with sample narrative
+  PORTFOLIO.todayPct = +((PORTFOLIO.todayAbs / PORTFOLIO.deposited) * 100).toFixed(2);
+  PERFORMANCE = rebuildPerformance();
+  return { total: tv, holdings: PORTFOLIO.holdings, watchlist: WATCHLIST };
+}
+
+export const TICKER_STOCKS = [
+  ['NVDA', +1.8], ['AAPL', +0.7], ['MSFT', +1.1], ['TSLA', -2.3], ['AMZN', +0.4],
+  ['GOOGL', +0.9], ['META', -0.6], ['AMD', +2.5], ['SPY', +0.3], ['BTC', -1.2],
 ];

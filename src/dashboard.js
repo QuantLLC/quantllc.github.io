@@ -9,11 +9,12 @@ import {
 } from './auth.js';
 import { initSettings, loadAccountSettings, getSettings, formatMoney } from './settings.js';
 import {
-  $, displayName, openAuthModal, updateHeader, initChrome, syncOpenSettings, toast,
+  $, displayName, openAuthModal, updateHeader, initChrome, syncOpenSettings,
+  toast, openMoneyModal, showDashLoading, escapeHtml,
 } from './ui.js';
 import {
-  PORTFOLIO, PERFORMANCE, ACTIVITY, HOLDING_COLORS,
-  holdingsValue, totalValue, totalReturnAbs, totalReturnPct,
+  PORTFOLIO, PERFORMANCE, ACTIVITY, HOLDING_COLORS, WATCHLIST,
+  holdingsValue, totalValue, totalReturnAbs, totalReturnPct, tickMarket,
 } from './portfolio.js';
 
 const money = (n) => formatMoney(n);
@@ -22,12 +23,22 @@ const cls = (n) => (n >= 0 ? 'pos' : 'neg');
 const arrow = (n) => (n >= 0 ? '▲' : '▼');
 
 let currentRange = '1M';
+let lastSynced = new Date();
+let tickTimer = null;
+let authReady = false;
 
 function greeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
   if (h < 18) return 'Good afternoon';
   return 'Good evening';
+}
+
+function timeAgo(d) {
+  const s = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
+  if (s < 5) return 'just now';
+  if (s < 60) return s + 's ago';
+  return Math.floor(s / 60) + 'm ago';
 }
 
 // ---------------------------------------------------------------------------
@@ -95,12 +106,12 @@ function donut(segments, size = 168, stroke = 24) {
 // ---------------------------------------------------------------------------
 // Full dashboard
 // ---------------------------------------------------------------------------
-function renderDashboard(user) {
+function renderDashboard(user, { soft = false } = {}) {
   const s = getSettings();
   const total = totalValue();
   const retAbs = totalReturnAbs();
   const retPct = totalReturnPct();
-  const hv = holdingsValue();
+  const hv = holdingsValue() || 1;
 
   const segments = PORTFOLIO.holdings.map((h, i) => ({
     frac: (h.shares * h.price) / hv,
@@ -125,16 +136,25 @@ function renderDashboard(user) {
       const val = h.shares * h.price;
       const alloc = ((val / hv) * 100).toFixed(1);
       return `
-      <tr>
+      <tr class="holding-row" data-sym="${h.sym}" tabindex="0" role="button" aria-label="Open ${h.sym} details">
         <td><span class="dot" style="background:${HOLDING_COLORS[i % HOLDING_COLORS.length]}"></span><b>${h.sym}</b> <small>${h.name}</small></td>
         <td class="num">${h.shares}</td>
-        <td class="num">${money(h.price)}</td>
+        <td class="num tick-price" data-sym="${h.sym}">${money(h.price)}</td>
         <td class="num">${money(val)}</td>
         <td class="num ${cls(h.dayPct)}">${arrow(h.dayPct)} ${Math.abs(h.dayPct).toFixed(1)}%</td>
         <td class="num">${alloc}%</td>
       </tr>`;
     })
     .join('');
+
+  const watchRows = WATCHLIST.map((w) => `
+    <div class="watch-row">
+      <div><b>${w.sym}</b><small>${w.name}</small></div>
+      <div class="watch-right">
+        <span class="tick-price" data-sym="${w.sym}">${money(w.price)}</span>
+        <span class="${cls(w.dayPct)}">${signedPct(w.dayPct)}</span>
+      </div>
+    </div>`).join('');
 
   const activityRows = ACTIVITY.map((a) => {
     const label = a.type === 'DEPOSIT' ? 'Deposit' : a.type === 'DIVIDEND' ? `Dividend · ${a.sym}` : `${a.type === 'BUY' ? 'Bought' : 'Sold'} ${a.qty} ${a.sym}`;
@@ -155,7 +175,8 @@ function renderDashboard(user) {
     <div class="dash-head">
       <div>
         <div class="dash-eyebrow">${greeting()},</div>
-        <h1 class="dash-name">${displayName(user)}</h1>
+        <h1 class="dash-name">${escapeHtml(displayName(user))}</h1>
+        <div class="sync-line"><span class="pulse"></span> Live preview · synced <span id="sync-ago">${timeAgo(lastSynced)}</span></div>
       </div>
       <div class="dash-actions">
         <button class="btn btn--ghost btn--sm" id="act-withdraw">Withdraw</button>
@@ -166,8 +187,8 @@ function renderDashboard(user) {
     <section class="stat-grid">
       <div class="card stat">
         <div class="stat-label">Total value</div>
-        <div class="stat-value" id="stat-total" data-target="${total}">${money(0)}</div>
-        <div class="stat-foot ${cls(PORTFOLIO.todayPct)}">${arrow(PORTFOLIO.todayPct)} ${money(PORTFOLIO.todayAbs)} (${signedPct(PORTFOLIO.todayPct)}) today</div>
+        <div class="stat-value" id="stat-total" data-target="${total}">${soft ? money(total) : money(0)}</div>
+        <div class="stat-foot ${cls(PORTFOLIO.todayPct)}" id="stat-today">${arrow(PORTFOLIO.todayPct)} ${money(Math.abs(PORTFOLIO.todayAbs))} (${signedPct(PORTFOLIO.todayPct)}) today</div>
       </div>
       <div class="card stat">
         <div class="stat-label">Invested</div>
@@ -176,8 +197,8 @@ function renderDashboard(user) {
       </div>
       <div class="card stat">
         <div class="stat-label">Total return</div>
-        <div class="stat-value ${cls(retAbs)}">${retAbs >= 0 ? '+' : '−'}${money(Math.abs(retAbs))}</div>
-        <div class="stat-foot ${cls(retPct)}">${signedPct(retPct)} all time</div>
+        <div class="stat-value ${cls(retAbs)}" id="stat-return">${retAbs >= 0 ? '+' : '−'}${money(Math.abs(retAbs))}</div>
+        <div class="stat-foot ${cls(retPct)}" id="stat-return-pct">${signedPct(retPct)} all time</div>
       </div>
       <div class="card stat">
         <div class="stat-label">Cash available</div>
@@ -202,7 +223,10 @@ function renderDashboard(user) {
 
     <section class="dash-grid">
       <div class="card table-card">
-        <div class="card-title">Holdings</div>
+        <div class="card-head">
+          <div class="card-title">Holdings</div>
+          <span class="card-sub">Click a row for details</span>
+        </div>
         <div class="table-scroll">
           <table class="holdings-table">
             <thead><tr><th>Asset</th><th class="num">Shares</th><th class="num">Price</th><th class="num">Value</th><th class="num">Day</th><th class="num">Alloc.</th></tr></thead>
@@ -217,27 +241,98 @@ function renderDashboard(user) {
           <div class="status-row"><span>Risk profile</span><span class="pill">${riskLabel}</span></div>
           <div class="status-row"><span>Server</span><span class="pill pill--warn">Not paired</span></div>
           <div class="status-row"><span>Last action</span><span class="muted">${ACTIVITY[0].type === 'BUY' ? 'Bought' : 'Sold'} ${ACTIVITY[0].sym}</span></div>
+          <button class="btn btn--ghost btn--sm" id="pair-cta" style="margin-top:12px;width:100%;justify-content:center">Pair server — coming soon</button>
         </div>
-        <div class="card act-card">
-          <div class="card-title">Recent activity</div>
-          <div class="act-list">${activityRows}</div>
+        <div class="card watch-card">
+          <div class="card-title">Watchlist</div>
+          <div class="watch-list">${watchRows}</div>
         </div>
       </div>
     </section>
 
-    <p class="dash-note">Figures shown are sample data for preview. Live trading data will appear here once your server is paired.</p>
+    <section class="dash-grid">
+      <div class="card act-card">
+        <div class="card-title">Recent activity</div>
+        <div class="act-list">${activityRows}</div>
+      </div>
+      <div class="card insight-card">
+        <div class="card-title">Today's insight</div>
+        <p class="insight-body">Quant is watching news + Yahoo Finance signals on your holdings. Risk profile is set to <strong>${riskLabel}</strong>${s.autoInvest ? ' with auto-invest on' : ' (auto-invest off)'}.</p>
+        <ul class="insight-list">
+          <li><span class="pos">▲</span> NVDA momentum remains constructive</li>
+          <li><span class="neg">▼</span> TSLA volatility elevated — stop rules active</li>
+          <li>Cash buffer ${money(PORTFOLIO.cash)} ready for dips</li>
+        </ul>
+      </div>
+    </section>
+
+    <p class="dash-note">Figures shown are sample / preview data. Live trading data appears once your local Quant server is paired.</p>
   `;
 
-  countUp($('#stat-total'));
+  if (!soft) countUp($('#stat-total'));
   drawLine($('#perf-line'));
-  wireDashboard();
+  wireDashboard(user);
+  startMarketTicks();
 }
 
-function wireDashboard() {
+function openHoldingDetail(sym) {
+  const h = PORTFOLIO.holdings.find((x) => x.sym === sym);
+  if (!h) return;
+  const i = PORTFOLIO.holdings.indexOf(h);
+  const val = h.shares * h.price;
+  let overlay = $('#holding-modal');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'holding-modal';
+    overlay.className = 'modal-overlay';
+    overlay.hidden = true;
+    overlay.innerHTML = `<div class="modal" role="dialog" aria-modal="true"><button class="modal-close" id="holding-close" aria-label="Close">&times;</button><div id="holding-body"></div></div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => { if (e.target.id === 'holding-modal') closeHolding(); });
+    $('#holding-close', overlay).addEventListener('click', closeHolding);
+  }
+  $('#holding-body').innerHTML = `
+    <div class="holding-detail">
+      <div class="hd-top">
+        <span class="dot" style="background:${HOLDING_COLORS[i % HOLDING_COLORS.length]};width:14px;height:14px"></span>
+        <div>
+          <h3 style="margin:0">${h.sym}</h3>
+          <small style="color:var(--muted)">${h.name}</small>
+        </div>
+      </div>
+      <div class="hd-grid">
+        <div><span class="stat-label">Price</span><div class="stat-value" style="font-size:24px">${money(h.price)}</div></div>
+        <div><span class="stat-label">Day</span><div class="stat-value ${cls(h.dayPct)}" style="font-size:24px">${signedPct(h.dayPct)}</div></div>
+        <div><span class="stat-label">Shares</span><div class="stat-value" style="font-size:24px">${h.shares}</div></div>
+        <div><span class="stat-label">Value</span><div class="stat-value" style="font-size:24px">${money(val)}</div></div>
+      </div>
+      <p class="auth-hint">Quant will buy, hold or sell ${h.sym} based on research + your risk profile. Per-holding controls arrive with server pairing.</p>
+      <button class="btn btn--primary btn--block" id="hd-close-btn">Done</button>
+    </div>`;
+  overlay.hidden = false;
+  document.body.style.overflow = 'hidden';
+  $('#hd-close-btn').addEventListener('click', closeHolding);
+}
+
+function closeHolding() {
+  const o = $('#holding-modal');
+  if (o) o.hidden = true;
+  document.body.style.overflow = '';
+}
+
+function wireDashboard(user) {
   const dep = $('#act-deposit');
   const wd = $('#act-withdraw');
-  if (dep) dep.addEventListener('click', () => toast('Deposits open once your account is funded — coming soon.'));
-  if (wd) wd.addEventListener('click', () => toast('Withdrawals will be available at launch.'));
+  if (dep) dep.addEventListener('click', () => openMoneyModal('deposit'));
+  if (wd) wd.addEventListener('click', () => openMoneyModal('withdraw'));
+  const pair = $('#pair-cta');
+  if (pair) pair.addEventListener('click', () => toast('Server pairing ships with the ISO release.'));
+
+  Array.from(document.querySelectorAll('.holding-row')).forEach((row) => {
+    const open = () => openHoldingDetail(row.dataset.sym);
+    row.addEventListener('click', open);
+    row.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  });
 
   const tabs = $('#range-tabs');
   if (tabs) {
@@ -246,16 +341,41 @@ function wireDashboard() {
         currentRange = b.dataset.range;
         $('#perf-slot').innerHTML = performanceChart();
         drawLine($('#perf-line'));
-        wireDashboard();
+        wireDashboard(user);
       });
     });
   }
+}
+
+function startMarketTicks() {
+  if (tickTimer) clearInterval(tickTimer);
+  tickTimer = setInterval(() => {
+    if (!auth.currentUser || !auth.currentUser.emailVerified) return;
+    // Don't re-render whole page if a modal/drawer is open
+    const open = (id) => { const el = $(id); return el && !el.hidden; };
+    if (open('#money-modal') || open('#holding-modal') || open('#settings-overlay') || open('#auth-modal')) {
+      const ago = $('#sync-ago');
+      if (ago) ago.textContent = timeAgo(lastSynced);
+      return;
+    }
+    tickMarket();
+    lastSynced = new Date();
+    // Soft refresh numbers without count-up animation
+    renderDashboard(auth.currentUser, { soft: true });
+  }, 8000);
+  // Keep "synced Xs ago" fresh
+  if (window.__syncAgo) clearInterval(window.__syncAgo);
+  window.__syncAgo = setInterval(() => {
+    const ago = $('#sync-ago');
+    if (ago) ago.textContent = timeAgo(lastSynced);
+  }, 1000);
 }
 
 // ---------------------------------------------------------------------------
 // Gates
 // ---------------------------------------------------------------------------
 function renderGate(mode, user) {
+  if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
   const root = $('#dash-root');
   if (mode === 'verify') {
     root.innerHTML = `
@@ -263,7 +383,7 @@ function renderGate(mode, user) {
         <div class="card gate-card">
           <div class="lock"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
           <h2>Verify your email</h2>
-          <p>We sent a link to <strong>${user.email}</strong>. Verify it to open your dashboard.</p>
+          <p>We sent a link to <strong>${escapeHtml(user.email)}</strong>. Verify it to open your dashboard.</p>
           <div class="gate-actions">
             <button class="btn btn--primary" id="g-check">I've verified</button>
             <button class="btn btn--ghost" id="g-resend">Resend email</button>
@@ -302,9 +422,6 @@ function renderGate(mode, user) {
   $('#g-signup').addEventListener('click', () => openAuthModal('signup'));
 }
 
-// ---------------------------------------------------------------------------
-// Animations
-// ---------------------------------------------------------------------------
 function countUp(el) {
   if (!el) return;
   const target = Number(el.dataset.target || 0);
@@ -329,20 +446,20 @@ function drawLine(path) {
   requestAnimationFrame(() => { path.style.strokeDashoffset = '0'; });
 }
 
-// ---------------------------------------------------------------------------
-// Boot
-// ---------------------------------------------------------------------------
 function renderCurrent() {
   const u = auth.currentUser;
+  if (!authReady) { showDashLoading($('#dash-root')); return; }
   if (!u) renderGate('login');
   else if (!u.emailVerified) renderGate('verify', u);
   else renderDashboard(u);
 }
 
 initSettings();
+showDashLoading($('#dash-root'));
 initChrome({ onAccountChange: renderCurrent, onAvatar: () => window.scrollTo({ top: 0, behavior: 'smooth' }) });
 
 onAuthStateChanged(auth, async (user) => {
+  authReady = true;
   if (user) {
     try { await loadAccountSettings(user); } catch (err) { console.warn('loadAccountSettings failed', err); }
     try { await touchUserProfile(user); } catch (err) { console.warn('touchUserProfile failed', err); }
