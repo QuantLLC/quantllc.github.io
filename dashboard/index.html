@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard — Quant</title>
+    <meta name="description" content="Your Quant portfolio dashboard: balance, holdings, performance and activity." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-orb bg-orb--1" aria-hidden="true"></div>
+    <div class="bg-orb bg-orb--2" aria-hidden="true"></div>
+
+    <!-- Header -->
+    <header class="site-header">
+      <div class="social" aria-label="Social media">
+        <a class="icon-btn" href="tel:+447368598864" title="Call us" aria-label="Call us">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </a>
+        <a class="icon-btn" href="https://github.com/QuantLLC" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 .5C5.73.5.5 5.73.5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.54-3.88-1.54-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.79 2.73 1.27 3.4.97.1-.76.41-1.27.74-1.56-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.2-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.18-1.18 3.18-1.18.63 1.59.23 2.76.11 3.05.75.81 1.2 1.84 1.2 3.1 0 4.43-2.7 5.4-5.26 5.69.42.36.8 1.08.8 2.18v3.23c0 .31.2.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z"/></svg>
+        </a>
+        <a class="icon-btn" href="mailto:quantllcsupport@proton.me" title="Email us" aria-label="Email us">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+        </a>
+      </div>
+
+      <nav class="nav" aria-label="Primary">
+        <a class="nav-pill" href="/#home">HOME</a>
+        <a class="nav-pill" href="/#about">ABOUT</a>
+        <a class="nav-pill" href="/#download">DOWNLOAD</a>
+        <a class="nav-pill" href="/#contact">CONTACT US</a>
+        <a class="nav-pill is-active" href="/dashboard/">DASHBOARD</a>
+      </nav>
+
+      <div class="header-right">
+        <div class="menu-wrap">
+          <button class="icon-btn menu-btn" id="menu-btn" aria-label="Settings menu" aria-haspopup="true" aria-expanded="false">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
+          <div class="menu" id="settings-menu" hidden>
+            <div class="menu-head" id="menu-account">Not signed in</div>
+            <button class="menu-item" id="menu-settings-btn">⚙&nbsp;&nbsp;Settings</button>
+            <a class="menu-item" href="/dashboard/">Dashboard</a>
+            <a class="menu-item" href="/#about">About Quant</a>
+            <a class="menu-item" href="/#download">Downloads</a>
+            <a class="menu-item" href="/#contact">Contact support</a>
+            <div class="menu-sep"></div>
+            <button class="menu-item menu-item--action" id="menu-auth-btn">Sign in</button>
+          </div>
+        </div>
+        <button class="avatar" id="profile-btn" aria-label="Your profile" title="Your profile">
+          <span class="avatar-initial" id="avatar-initial"></span>
+          <svg class="avatar-default" id="avatar-default" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>
+          <span class="avatar-dot" id="avatar-dot" aria-hidden="true"></span>
+        </button>
+      </div>
+    </header>
+
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker-track" id="ticker-track"></div>
+    </div>
+
+    <main class="dash" id="dash-root"><!-- dashboard / gate injected here --></main>
+
+    <footer class="site-footer site-footer--slim">
+      <div class="footer-legal">
+        <span>&copy; <span id="year"></span> Quant LLC. All rights reserved.</span>
+        <span>Founded by Alexander Korendowych · England, United Kingdom.</span>
+      </div>
+    </footer>
+
+    <!-- Settings drawer -->
+    <div class="drawer-overlay" id="settings-overlay" hidden>
+      <aside class="drawer" role="dialog" aria-modal="true" aria-label="Settings">
+        <div class="drawer-head">
+          <h2>Settings</h2>
+          <button class="modal-close" id="settings-close" aria-label="Close settings">&times;</button>
+        </div>
+        <div class="drawer-body" id="settings-body"></div>
+        <div class="drawer-foot" id="settings-foot"></div>
+      </aside>
+    </div>
+
+    <!-- Auth modal -->
+    <div class="modal-overlay" id="auth-modal" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-label="Sign in to Quant">
+        <button class="modal-close" id="modal-close" aria-label="Close">&times;</button>
+        <div id="auth-modal-body"></div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/dashboard.js"></script>
+  </body>
+</html>
