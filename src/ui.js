@@ -314,6 +314,7 @@ export function openAuthModal(mode = 'signin') {
         });
         if (!tos.accepted) {
           setMsg('Account not created — you must agree to the Terms to continue.');
+          toast('Account not created — Terms declined.');
           submit.disabled = false;
           submit.textContent = original;
           return;
