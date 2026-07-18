@@ -70,7 +70,7 @@ export const ACTIVITY = [
   { type: 'DEPOSIT', sym: '', qty: 0, amount: 218.0, when: '3d ago' },
 ];
 
-// Gentle random-walk tick so the UI feels alive (preview data only).
+// Gentle random-walk tick so the UI feels alive when Yahoo is unreachable.
 export function tickMarket() {
   const nudge = (obj) => {
     const delta = (Math.random() - 0.48) * obj.price * 0.0015;
@@ -79,12 +79,35 @@ export function tickMarket() {
   };
   PORTFOLIO.holdings.forEach(nudge);
   WATCHLIST.forEach(nudge);
-  const tv = totalValue();
-  PORTFOLIO.todayAbs = +(tv - PORTFOLIO.deposited * 1.0).toFixed(1);
-  // Keep todayPct roughly coherent with sample narrative
-  PORTFOLIO.todayPct = +((PORTFOLIO.todayAbs / PORTFOLIO.deposited) * 100).toFixed(2);
+  recomputeToday();
   PERFORMANCE = rebuildPerformance();
-  return { total: tv, holdings: PORTFOLIO.holdings, watchlist: WATCHLIST };
+  return { total: totalValue(), holdings: PORTFOLIO.holdings, watchlist: WATCHLIST };
+}
+
+/** Overlay live Yahoo Finance quotes onto sample holdings / watchlist. */
+export function applyYahooQuotes(quotes) {
+  if (!quotes || typeof quotes !== 'object') return false;
+  let hit = 0;
+  const apply = (obj) => {
+    const q = quotes[obj.sym];
+    if (!q || !Number.isFinite(q.price)) return;
+    obj.price = +Number(q.price).toFixed(2);
+    if (Number.isFinite(q.changePct)) obj.dayPct = +Number(q.changePct).toFixed(2);
+    hit += 1;
+  };
+  PORTFOLIO.holdings.forEach(apply);
+  WATCHLIST.forEach(apply);
+  if (!hit) return false;
+  recomputeToday();
+  PERFORMANCE = rebuildPerformance();
+  return true;
+}
+
+function recomputeToday() {
+  const dayMove = PORTFOLIO.holdings.reduce((a, h) => a + h.shares * h.price * (h.dayPct / 100), 0);
+  PORTFOLIO.todayAbs = +dayMove.toFixed(2);
+  const base = totalValue() - dayMove;
+  PORTFOLIO.todayPct = base ? +((dayMove / base) * 100).toFixed(2) : 0;
 }
 
 export const TICKER_STOCKS = [

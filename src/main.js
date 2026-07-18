@@ -7,6 +7,7 @@ import {
   touchUserProfile,
   recordDownload,
   friendlyError,
+  logOut,
 } from './auth.js';
 import { initSettings, loadAccountSettings, formatMoney } from './settings.js';
 import {
@@ -20,6 +21,7 @@ import {
   toast,
   showLoading,
 } from './ui.js';
+import { ensureTosAccepted } from './tos.js';
 
 let authReady = false;
 
@@ -182,11 +184,24 @@ function renderLoginPrompt() {
   if (su) su.addEventListener('click', () => openAuthModal('signup'));
 }
 
-function refreshPanel() {
+async function refreshPanel() {
   if (!authReady) { showLoading($('#panel-slot')); return; }
   const u = auth.currentUser;
-  if (!u) renderLoginPrompt();
-  else if (!u.emailVerified) renderVerifyPrompt(u);
+  if (!u) {
+    renderLoginPrompt();
+    return;
+  }
+  // Dashboard / account panel requires TOS. Decline → sign out (no access).
+  const ok = await ensureTosAccepted(u);
+  if (!ok || auth.currentUser !== u) {
+    if (auth.currentUser === u) {
+      try { await logOut(); } catch { /* ignore */ }
+    }
+    renderLoginPrompt();
+    toast('You must agree to the Terms to use Quant.');
+    return;
+  }
+  if (!u.emailVerified) renderVerifyPrompt(u);
   else renderPanelDashboard(u);
 }
 
