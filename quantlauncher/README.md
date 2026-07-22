@@ -1,0 +1,26 @@
+# QuantLauncher
+
+Personal dark desktop-style Android home launcher (Views / XML — no Compose).
+
+## Open in Android Studio
+1. Unzip this folder (or clone the repo and open `quantlauncher/`)
+2. Android Studio → **File → Open** → select the `quantlauncher` folder
+3. Wait for Gradle sync
+4. Run on your MatePad / emulator
+
+## First launch
+On start, QuantLauncher asks for:
+1. **Permissions** — so Launchpad can see installed apps (including GBox)
+2. **Default Home / launcher** — so Home opens this desktop
+
+## Features
+- Dark theme, rounded dock + Launchpad panel (no top bar)
+- System wallpaper (requests storage / photos permission)
+- Bottom dock with green Launchpad button
+- **Win / Super / Meta key** toggles Launchpad open/close
+- **Desktop icons**: long-press wallpaper → Edit desktop (half-screen picker)
+- **Customize dock**: long-press the green Apps button → Settings
+- Settings: toggle text under icons
+- Long-press a dock/desktop app → confirm remove
+- Launchpad sections: **GBox apps** + **All apps**
+- Search, GBox badges, Home-role setup
