@@ -17,13 +17,22 @@
     <string name="apps_label">Apps</string>
     <string name="settings">Settings</string>
     <string name="dock_settings">Dock settings</string>
-    <string name="customize_dock_title">Customize dock</string>
+    <string name="customize_dock">Customize dock</string>
     <string name="customize_dock_hint">Drag an app onto the dock below to add it.\n(Tip: long-press the green Apps button for Settings)</string>
+    <string name="edit_desktop">Edit desktop</string>
+    <string name="edit_desktop_hint">Tap an app to add it to the desktop</string>
     <string name="remove_dock_title">Remove from dock?</string>
     <string name="remove_dock_body">Remove %1$s from the dock?</string>
+    <string name="remove_desktop_title">Remove from desktop?</string>
+    <string name="remove_desktop_body">Remove %1$s from the desktop?</string>
     <string name="confirm">Confirm</string>
     <string name="no">No</string>
     <string name="dock_full">Dock is full (max %1$d apps)</string>
+    <string name="desktop_full">Desktop is full (max %1$d apps)</string>
     <string name="dock_added">Added to dock</string>
+    <string name="desktop_added">Added to desktop</string>
     <string name="dock_already">Already on the dock</string>
+    <string name="desktop_already">Already on the desktop</string>
+    <string name="show_icon_labels">Show text under icons</string>
+    <string name="hide_icon_labels">Hide text under icons</string>
 </resources>

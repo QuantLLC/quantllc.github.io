@@ -17,7 +17,10 @@ On start, QuantLauncher asks for:
 - Dark theme, rounded dock + Launchpad panel (no top bar)
 - System wallpaper (requests storage / photos permission)
 - Bottom dock with green Launchpad button
-- **Customize dock**: long-press the green Apps button → Settings → drag apps onto the dock
-- Long-press a dock app → confirm remove
+- **Win / Super / Meta key** toggles Launchpad open/close
+- **Desktop icons**: long-press wallpaper → Edit desktop (half-screen picker)
+- **Customize dock**: long-press the green Apps button → Settings
+- Settings: toggle text under icons
+- Long-press a dock/desktop app → confirm remove
 - Launchpad sections: **GBox apps** + **All apps**
 - Search, GBox badges, Home-role setup
