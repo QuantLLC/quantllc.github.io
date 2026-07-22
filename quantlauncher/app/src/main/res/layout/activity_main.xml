@@ -4,7 +4,6 @@
     android:layout_height="match_parent"
     android:background="@android:color/transparent">
 
-    <!-- Soft dark gradient when system wallpaper is unavailable -->
     <ImageView
         android:id="@+id/wallpaper"
         android:layout_width="match_parent"
@@ -14,42 +13,12 @@
         android:src="@drawable/wallpaper" />
 
     <View
+        android:id="@+id/scrim"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@color/desktop_scrim" />
 
-    <!-- Top bar -->
-    <LinearLayout
-        android:id="@+id/topBar"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_gravity="top"
-        android:background="@drawable/bg_topbar"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="22dp"
-        android:paddingEnd="22dp">
-
-        <TextView
-            android:id="@+id/brand"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:letterSpacing="0.04"
-            android:text="@string/desktop_title"
-            android:textColor="@color/text_primary"
-            android:textSize="15sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/clock"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/text_muted"
-            android:textSize="14sp" />
-    </LinearLayout>
-
-    <!-- Launchpad overlay -->
+    <!-- Launchpad / dock-edit overlay -->
     <FrameLayout
         android:id="@+id/launchpad"
         android:layout_width="match_parent"
@@ -64,7 +33,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_marginStart="40dp"
-            android:layout_marginTop="64dp"
+            android:layout_marginTop="40dp"
             android:layout_marginEnd="40dp"
             android:layout_marginBottom="120dp"
             android:background="@drawable/bg_launchpad_panel"
@@ -72,6 +41,16 @@
             android:elevation="12dp"
             android:orientation="vertical"
             android:padding="22dp">
+
+            <TextView
+                android:id="@+id/launchpadTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
 
             <EditText
                 android:id="@+id/search"
@@ -100,17 +79,27 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- Bottom dock -->
-    <LinearLayout
-        android:id="@+id/dock"
-        android:layout_width="wrap_content"
-        android:layout_height="92dp"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="26dp"
-        android:background="@drawable/bg_dock"
-        android:elevation="10dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="8dp" />
+    <!-- Dock area: long-press vacant space for settings -->
+    <FrameLayout
+        android:id="@+id/dockArea"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:layout_gravity="bottom"
+        android:clipChildren="false">
+
+        <LinearLayout
+            android:id="@+id/dock"
+            android:layout_width="wrap_content"
+            android:layout_height="92dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="26dp"
+            android:background="@drawable/bg_dock"
+            android:clipChildren="false"
+            android:elevation="10dp"
+            android:gravity="center_vertical"
+            android:minWidth="280dp"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp" />
+    </FrameLayout>
 </FrameLayout>

@@ -14,8 +14,10 @@ On start, QuantLauncher asks for:
 2. **Default Home / launcher** — so Home opens this desktop
 
 ## Features
-- Dark theme, rounded dock + Launchpad panel
-- System wallpaper as desktop background
+- Dark theme, rounded dock + Launchpad panel (no top bar)
+- System wallpaper (requests storage / photos permission)
 - Bottom dock with green Launchpad button
+- **Customize dock**: long-press vacant dock space → Settings → drag apps onto the dock
+- Long-press a dock app → confirm remove
 - Launchpad sections: **GBox apps** + **All apps**
 - Search, GBox badges, Home-role setup
