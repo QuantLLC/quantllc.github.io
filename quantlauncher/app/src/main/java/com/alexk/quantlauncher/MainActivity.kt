@@ -371,23 +371,8 @@ class MainActivity : AppCompatActivity() {
         resolveDockApps().forEach { app ->
             dock.addView(createDockAppTile(app))
         }
-
-        // Vacant space at the end — long-press for settings
-        val vacant = View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(dp(72), dp(58)).also { lp ->
-                lp.marginStart = dp(4)
-            }
-            contentDescription = getString(R.string.dock_settings)
-            isClickable = true
-            isLongClickable = true
-            setOnLongClickListener { v ->
-                showDockSettingsMenu(v)
-                true
-            }
-            // Also allow empty tap area to feel like dock padding
-            setOnClickListener { /* vacant */ }
-        }
-        dock.addView(vacant)
+        // No vacant spacer — dock hugs real icons only.
+        // Settings: long-press the green Launchpad button (or empty area around the dock).
     }
 
     private fun createLaunchpadButton(): View {
@@ -403,8 +388,10 @@ class MainActivity : AppCompatActivity() {
                 launchpadTitle.visibility = View.GONE
                 openLaunchpadInternal()
             }
-            // Don't open settings from the launchpad button long-press
-            isLongClickable = false
+            setOnLongClickListener { v ->
+                showDockSettingsMenu(v)
+                true
+            }
         }
         val gridIcon = ImageView(this).apply {
             layoutParams = FrameLayout.LayoutParams(dp(24), dp(24)).also {
