@@ -7,5 +7,40 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="colorPrimary">@color/android_green</item>
+        <item name="colorPrimaryVariant">@color/panel_dark_solid</item>
+        <item name="colorOnPrimary">@color/text_primary</item>
+        <item name="colorSurface">@color/panel_dark_solid</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_muted</item>
+        <item name="alertDialogTheme">@style/Theme.QuantLauncher.Dialog</item>
+        <item name="materialAlertDialogTheme">@style/Theme.QuantLauncher.Dialog</item>
+    </style>
+
+    <style name="Theme.QuantLauncher.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="android:background">@color/panel_dark_solid</item>
+        <item name="colorSurface">@color/panel_dark_solid</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorPrimary">@color/android_green</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/Theme.QuantLauncher.Dialog.Title</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/Theme.QuantLauncher.Dialog.Body</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Theme.QuantLauncher.Dialog.Button</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Theme.QuantLauncher.Dialog.Button</item>
+    </style>
+
+    <style name="Theme.QuantLauncher.Dialog.Title" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">18sp</item>
+    </style>
+
+    <style name="Theme.QuantLauncher.Dialog.Body" parent="MaterialAlertDialog.MaterialComponents.Body.Text">
+        <item name="android:textColor">@color/text_muted</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="Theme.QuantLauncher.Dialog.Button" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/android_green</item>
     </style>
 </resources>

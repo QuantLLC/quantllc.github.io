@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Quant Launcher</string>
+    <string name="desktop_title">Quant Desktop</string>
+    <string name="search_hint">Search apps…</string>
+    <string name="launchpad">Launchpad</string>
+    <string name="section_all">All apps</string>
+    <string name="section_gbox">GBox apps</string>
+    <string name="perm_title">Permissions needed</string>
+    <string name="perm_body">Quant Launcher needs a few permissions so Launchpad can list your apps — including GBox — and work as your tablet desktop.\n\n• See all installed apps (including GBox)\n• Notifications (Android 13+)\n\nNext, you\'ll be asked to set Quant Launcher as your default Home app.</string>
+    <string name="perm_continue">Continue</string>
+    <string name="home_title">Set as default launcher?</string>
+    <string name="home_body">To open this desktop every time you press Home, set Quant Launcher as your default Home / launcher app.</string>
+    <string name="home_set">Set as default</string>
+    <string name="home_later">Later</string>
+    <string name="gbox_missing">GBox not installed — install GBox to see virtual apps here.</string>
+    <string name="apps_label">Apps</string>
 </resources>

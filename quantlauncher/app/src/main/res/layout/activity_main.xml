@@ -1,39 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/transparent">
 
-    <TextView
-        android:id="@+id/menuTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|start"
-        android:layout_margin="18dp"
-        android:text="Quant Desktop"
-        android:textColor="#E6FFFFFF"
-        android:textSize="13sp"
-        android:textStyle="bold" />
+    <!-- Soft dark gradient when system wallpaper is unavailable -->
+    <ImageView
+        android:id="@+id/wallpaper"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop"
+        android:src="@drawable/wallpaper" />
 
-    <HorizontalScrollView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="24dp"
-        android:scrollbars="none">
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/desktop_scrim" />
 
-        <LinearLayout
-            android:id="@+id/dock"
+    <!-- Top bar -->
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_gravity="top"
+        android:background="@drawable/bg_topbar"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="22dp"
+        android:paddingEnd="22dp">
+
+        <TextView
+            android:id="@+id/brand"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:letterSpacing="0.04"
+            android:text="@string/desktop_title"
+            android:textColor="@color/text_primary"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/clock"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@color/dock_bg"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="14dp"
-            android:paddingVertical="10dp" />
-    </HorizontalScrollView>
+            android:textColor="@color/text_muted"
+            android:textSize="14sp" />
+    </LinearLayout>
 
+    <!-- Launchpad overlay -->
     <FrameLayout
         android:id="@+id/launchpad"
         android:layout_width="match_parent"
@@ -44,28 +60,57 @@
         android:visibility="gone">
 
         <LinearLayout
+            android:id="@+id/launchpadPanel"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="64dp"
+            android:layout_marginEnd="40dp"
+            android:layout_marginBottom="120dp"
+            android:background="@drawable/bg_launchpad_panel"
+            android:clickable="true"
+            android:elevation="12dp"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="22dp">
 
             <EditText
                 android:id="@+id/search"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="#66FFFFFF"
-                android:hint="Search"
+                android:layout_height="50dp"
+                android:background="@drawable/bg_search"
+                android:hint="@string/search_hint"
+                android:imeOptions="actionSearch"
                 android:inputType="text"
-                android:padding="12dp"
-                android:textColor="#111318"
-                android:textColorHint="#991A1D24" />
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp"
+                android:singleLine="true"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/search_hint"
+                android:textSize="15sp" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/appGrid"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_marginTop="16dp"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:overScrollMode="never"
+                android:paddingBottom="8dp" />
         </LinearLayout>
     </FrameLayout>
+
+    <!-- Bottom dock -->
+    <LinearLayout
+        android:id="@+id/dock"
+        android:layout_width="wrap_content"
+        android:layout_height="92dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="26dp"
+        android:background="@drawable/bg_dock"
+        android:elevation="10dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="8dp" />
 </FrameLayout>

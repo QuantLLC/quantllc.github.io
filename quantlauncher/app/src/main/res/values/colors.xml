@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="dock_bg">#66FFFFFF</color>
-    <color name="launchpad_scrim">#99070A10</color>
-    <color name="android_green">#3DDC84</color>
+    <color name="desktop_scrim">#55000000</color>
+    <color name="panel_dark">#F214161E</color>
+    <color name="panel_dark_solid">#FF12141C</color>
+    <color name="dock_bg">#E6161820</color>
+    <color name="dock_stroke">#40FFFFFF</color>
+    <color name="launchpad_scrim">#EE08090C</color>
+    <color name="search_bg">#FF252A36</color>
+    <color name="search_hint">#99A0A8B8</color>
+    <color name="text_primary">#FFF5F7FB</color>
+    <color name="text_muted">#B3A8B0C0</color>
+    <color name="accent">#FF22D37A</color>
+    <color name="android_green">#FF3DDC84</color>
+    <color name="icon_tile">#FF222632</color>
+    <color name="gbox_badge">#FF5B8CFF</color>
+    <color name="divider">#22FFFFFF</color>
 </resources>
